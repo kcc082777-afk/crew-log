@@ -119,7 +119,7 @@ function vPay(){
  const [a,b]=period(),rows=S.emp.map(e=>({e,...calc(e,a,b)}));
  const T=rows.reduce((s,r)=>({base:s.base+r.base,bn:s.bn+r.bn,adv:s.adv+r.adv,net:s.net+r.net}),{base:0,bn:0,adv:0,net:0});
  return `<div class="date"><input type="month" value="${D.ym}" data-c="ym"><div class="seg"><button class="${D.half==1?'on f':''}" data-a="half" data-v="1">1–15日</button><button class="${D.half==2?'on f':''}" data-a="half" data-v="2">16日–月底</button></div></div>
- <p class="lbl">結算區間 ${a} 至 ${b}。實領 = 薪資 + 加給 − 借支。</p>
+ <button class="btn" data-a="xl" style="margin-bottom:10px">匯出 Excel（${D.ym} 整月）</button><p class="lbl">結算區間 ${a} 至 ${b}。實領 = 薪資 + 加給 − 借支。</p>
  <div class="scroll"><table><thead><tr><th>員工</th><th>出勤</th><th>半天</th><th>薪資</th><th>加給</th><th>借支</th><th>實領</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.e.n)}</td><td>${r.f}</td><td>${r.h}</td><td>${money(r.base)}</td><td>${money(r.bn)}</td><td>${money(r.adv)}</td><td class="${r.net<0?'neg':''}"><b>${money(r.net)}</b></td></tr>`).join('')}</tbody><tfoot><tr><td>合計</td><td></td><td></td><td>${money(T.base)}</td><td>${money(T.bn)}</td><td>${money(T.adv)}</td><td>${money(T.net)}</td></tr></tfoot></table></div>`;
 }
 
@@ -160,6 +160,7 @@ document.addEventListener('click',ev=>{
  else if(a=='ae'){wk(D.work).exp.push({n:'',a:0})}
  else if(a=='re'){wk(D.work).exp.splice(i,1)}
  else if(a=='rp'){wk(D.work).photos.splice(i,1)}
+ else if(a=='xl'){exportXlsx();return}
  else if(a=='half'){D.half=+v}
  else if(a=='ae2'){S.emp.push({id:uid(),n:'員工'+(S.emp.length+1),w:0})}
  else if(a=='de'){if(!confirm('刪除這位員工？其歷史資料會一併不再顯示。'))return;S.emp=S.emp.filter(e=>e.id!=id)}
@@ -192,6 +193,44 @@ function addPhotos(files){
  const r=wk(D.work);
  Promise.all(files.map(f=>new Promise(res=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,720/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.6))};im.onerror=()=>res(null);im.src=fr.result};fr.readAsDataURL(f)}))).then(a=>{r.photos.push(...a.filter(Boolean));save();render()});
 }
+function crc(b){const t=crc.t||(crc.t=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));let r=-1;for(const x of b)r=t[(r^x)&255]^(r>>>8);return(r^-1)>>>0}
+function zip(fs){const e=new TextEncoder(),parts=[],cd=[];let off=0;
+ for(const f of fs){const n=e.encode(f.n),d=e.encode(f.d),c=crc(d);
+  const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(12,0x21,true);h.setUint32(14,c,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,n.length,true);
+  parts.push(new Uint8Array(h.buffer),n,d);
+  const q=new DataView(new ArrayBuffer(46));q.setUint32(0,0x02014b50,true);q.setUint16(4,20,true);q.setUint16(6,20,true);q.setUint16(8,0x0800,true);q.setUint16(14,0x21,true);q.setUint32(16,c,true);q.setUint32(20,d.length,true);q.setUint32(24,d.length,true);q.setUint16(28,n.length,true);q.setUint32(42,off,true);
+  cd.push(new Uint8Array(q.buffer),n);off+=30+n.length+d.length}
+ const cs=cd.reduce((s,x)=>s+x.length,0),z=new DataView(new ArrayBuffer(22));z.setUint32(0,0x06054b50,true);z.setUint16(8,fs.length,true);z.setUint16(10,fs.length,true);z.setUint32(12,cs,true);z.setUint32(16,off,true);
+ return new Blob([...parts,...cd,new Uint8Array(z.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+const xe=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const col=i=>{let s='';for(i++;i>0;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s};
+function sheetXml(rows){return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="40" width="14" customWidth="1"/></cols><sheetData>'+rows.map((r,i)=>`<row r="${i+1}">`+r.map((c,j)=>{if(c==null||c==='')return'';const o=typeof c=='object'?c:{v:c},s=o.b?' s="1"':'',ref=col(j)+(i+1);return typeof o.v=='number'?`<c r="${ref}"${s}><v>${o.v}</v></c>`:`<c r="${ref}"${s} t="inlineStr"><is><t>${xe(o.v)}</t></is></c>`}).join('')+'</row>').join('')+'</sheetData></worksheet>'}
+function xlsx(sheets){const N='http://schemas.openxmlformats.org/',R=N+'officeDocument/2006/relationships',H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+ return zip([
+ {n:'[Content_Types].xml',d:H+'<Types xmlns="'+N+'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'</Types>'},
+ {n:'_rels/.rels',d:H+'<Relationships xmlns="'+N+'package/2006/relationships"><Relationship Id="rId1" Type="'+R+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+ {n:'xl/workbook.xml',d:H+'<workbook xmlns="'+N+'spreadsheetml/2006/main" xmlns:r="'+R+'"><sheets>'+sheets.map((s,i)=>`<sheet name="${xe(s[0])}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')+'</sheets></workbook>'},
+ {n:'xl/_rels/workbook.xml.rels',d:H+'<Relationships xmlns="'+N+'package/2006/relationships">'+sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${R}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')+`<Relationship Id="rId${sheets.length+1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`},
+ {n:'xl/styles.xml',d:H+'<styleSheet xmlns="'+N+'spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
+ ...sheets.map((s,i)=>({n:`xl/worksheets/sheet${i+1}.xml`,d:sheetXml(s[1])}))])}
+function exportXlsx(){
+ const ym=D.ym,n=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate(),pd=x=>String(x).padStart(2,'0'),
+ a1=ym+'-01',b1=ym+'-15',a2=ym+'-16',b2=ym+'-'+pd(n),B=a=>a.map(v=>({v,b:1}));
+ const R=S.emp.map(e=>({e,m:calc(e,a1,b2),p1:calc(e,a1,b1),p2:calc(e,a2,b2)}));
+ const sum=k=>R.reduce((s,r)=>s+r.m[k],0);
+ const s1=[[{v:ym+' 月薪結算',b:1}],[],B(['員工','日薪','出勤天數','半天','月薪','加給','借支','實領','1–15日實領','16日–月底實領'])];
+ R.forEach(r=>s1.push([r.e.n,r.e.w,r.m.f,r.m.h,r.m.base,r.m.bn,r.m.adv,r.m.net,r.p1.net,r.p2.net]));
+ s1.push(B(['合計','','','',sum('base'),sum('bn'),sum('adv'),sum('net'),R.reduce((s,r)=>s+r.p1.net,0),R.reduce((s,r)=>s+r.p2.net,0)]));
+ const s2=[B(['員工',...Array.from({length:n},(_,i)=>i+1),'合計'])];
+ S.emp.forEach(e=>{let t=0;const c=Array.from({length:n},(_,i)=>{const s=g(ym+'-'+pd(i+1),e.id).s,v=s=='f'?1:s=='h'?.5:0;t+=v;return v});s2.push([e.n,...c,t])});
+ const s3=[B(['日期','施工項目','施工人員','花費項目','金額'])];let ex=0;
+ Object.keys(S.work).filter(d=>d>=a1&&d<=b2).sort().forEach(d=>{const r=S.work[d],it=r.items.filter(Boolean).join('、'),wr=r.workers.map(id=>S.emp.find(e=>e.id==id)?.n).filter(Boolean).join('、');
+  if(!r.exp.length&&!it&&!wr)return;
+  if(!r.exp.length)s3.push([d,it,wr]);else r.exp.forEach((x,i)=>{ex+=+x.a||0;s3.push([d,i?'':it,i?'':wr,x.n,+x.a||0])})});
+ s3.push(B(['施工花費合計','','','',ex]));
+ const s4=[[{v:ym+' 當月總支出',b:1}],[],['月薪合計（出勤薪資）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
+ const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['施工花費',s3],['當月總支出',s4]])),a=document.createElement('a');
+ a.href=u;a.download='工班記事_'+ym+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 render();
 if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 if(navigator.storage&&navigator.storage.persist){navigator.storage.persist().catch(()=>{})}
