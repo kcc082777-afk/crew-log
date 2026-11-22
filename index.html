@@ -113,19 +113,19 @@ function vWork(){
 }
 
 function period(){const [y,m]=D.ym.split('-'),last=new Date(+y,+m,0).getDate();return D.half==1?[D.ym+'-01',D.ym+'-15']:[D.ym+'-16',D.ym+'-'+String(last).padStart(2,'0')]}
-function calc(e,a,b){let f=0,h=0,bn=0,adv=0;for(const d in S.att){if(d<a||d>b)continue;const r=S.att[d][e.id];if(!r)continue;if(r.s=='f')f++;if(r.s=='h')h++;bn+=r.b.reduce((s,x)=>s+(+x.a||0),0);adv+=+r.a||0}
- const base=(f+h/2)*e.w;return{f,h,base,bn,adv,net:base+bn-adv}}
+function calc(e,a,b,k=1){let f=0,h=0,bn=0,adv=0;for(const d in S.att){if(d<a||d>b)continue;const r=S.att[d][e.id];if(!r)continue;if(r.s=='f')f++;if(r.s=='h')h++;bn+=r.b.reduce((s,x)=>s+(+x.a||0),0);adv+=+r.a||0}
+ const base=e.t=='m'?e.w*k/2:(f+h/2)*e.w;return{f,h,base,bn,adv,net:base+bn-adv}}
 function vPay(){
  const [a,b]=period(),rows=S.emp.map(e=>({e,...calc(e,a,b)}));
  const T=rows.reduce((s,r)=>({base:s.base+r.base,bn:s.bn+r.bn,adv:s.adv+r.adv,net:s.net+r.net}),{base:0,bn:0,adv:0,net:0});
  return `<div class="date"><input type="month" value="${D.ym}" data-c="ym"><div class="seg"><button class="${D.half==1?'on f':''}" data-a="half" data-v="1">1–15日</button><button class="${D.half==2?'on f':''}" data-a="half" data-v="2">16日–月底</button></div></div>
  <button class="btn" data-a="xl" style="margin-bottom:10px">匯出 Excel（${D.ym} 整月）</button><p class="lbl">結算區間 ${a} 至 ${b}。實領 = 薪資 + 加給 − 借支。</p>
- <div class="scroll"><table><thead><tr><th>員工</th><th>出勤</th><th>半天</th><th>薪資</th><th>加給</th><th>借支</th><th>實領</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.e.n)}</td><td>${r.f}</td><td>${r.h}</td><td>${money(r.base)}</td><td>${money(r.bn)}</td><td>${money(r.adv)}</td><td class="${r.net<0?'neg':''}"><b>${money(r.net)}</b></td></tr>`).join('')}</tbody><tfoot><tr><td>合計</td><td></td><td></td><td>${money(T.base)}</td><td>${money(T.bn)}</td><td>${money(T.adv)}</td><td>${money(T.net)}</td></tr></tfoot></table></div>${vSum()}`;
+ <div class="scroll"><table><thead><tr><th>員工</th><th>出勤</th><th>半天</th><th>薪資</th><th>加給</th><th>借支</th><th>實領</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.e.n)}${r.e.t=='m'?' <span class="lbl">月薪</span>':''}</td><td>${r.f}</td><td>${r.h}</td><td>${money(r.base)}</td><td>${money(r.bn)}</td><td>${money(r.adv)}</td><td class="${r.net<0?'neg':''}"><b>${money(r.net)}</b></td></tr>`).join('')}</tbody><tfoot><tr><td>合計</td><td></td><td></td><td>${money(T.base)}</td><td>${money(T.bn)}</td><td>${money(T.adv)}</td><td>${money(T.net)}</td></tr></tfoot></table></div>${vSum()}`;
 }
 
-function vSum(){const a=D.ym+'-01',b=D.ym+'-31';let base=0,bn=0,adv=0,ex=0;S.emp.forEach(e=>{const c=calc(e,a,b);base+=c.base;bn+=c.bn;adv+=c.adv});for(const d in S.work)if(d>=a&&d<=b)ex+=S.work[d].exp.reduce((s,x)=>s+(+x.a||0),0);
+function vSum(){const a=D.ym+'-01',b=D.ym+'-31';let base=0,bn=0,adv=0,ex=0;S.emp.forEach(e=>{const c=calc(e,a,b,2);base+=c.base;bn+=c.bn;adv+=c.adv});for(const d in S.work)if(d>=a&&d<=b)ex+=S.work[d].exp.reduce((s,x)=>s+(+x.a||0),0);
  const L=(t,v,c)=>`<div class="row" style="margin-top:6px"><span>${t}</span><span${c||''}>${money(v)}</span></div>`;
- return `<h2>${D.ym} 整月</h2><div class="card">${L('月薪合計（出勤薪資）',base)}${L('加給合計',bn)}${L('施工花費合計',ex)}<div class="total"><span>當月總支出</span><span>${money(base+bn+ex)}</span></div><p class="lbl" style="margin:8px 0 0">借支 ${money(adv)} 已從實領扣除，不重複計入總支出。</p></div>`}
+ return `<h2>${D.ym} 整月</h2><div class="card">${L('薪資合計（日薪＋月薪）',base)}${L('加給合計',bn)}${L('施工花費合計',ex)}<div class="total"><span>當月總支出</span><span>${money(base+bn+ex)}</span></div><p class="lbl" style="margin:8px 0 0">借支 ${money(adv)} 已從實領扣除，不重複計入總支出。</p></div>`}
 function vHis(){
  const [y,m]=D.hm.split('-'),n=new Date(+y,+m,0).getDate(),days=Array.from({length:n},(_,i)=>i+1);
  const key=i=>D.hm+'-'+String(i).padStart(2,'0');
@@ -134,8 +134,8 @@ function vHis(){
 }
 
 function vSet(){
- return `<h2 style="margin-top:0">員工與日薪</h2><p class="lbl">目前 ${S.emp.length} 人，可繼續新增。半天以日薪的一半計算。</p>
- ${S.emp.map(e=>`<div class="card row" style="flex-wrap:nowrap"><input style="flex:1" value="${esc(e.n)}" data-c="en2" data-id="${e.id}" aria-label="姓名"><input type="number" inputmode="numeric" value="${e.w||''}" placeholder="日薪" data-c="ew" data-id="${e.id}" aria-label="日薪"><button class="x" data-a="de" data-id="${e.id}" aria-label="刪除員工">×</button></div>`).join('')}
+ return `<h2 style="margin-top:0">員工與日薪</h2><p class="lbl">目前 ${S.emp.length} 人，可繼續新增。日薪制：半天以日薪一半計算。月薪制：每期（1–15日、16日–月底）固定發月薪的一半，不隨出勤增減。</p>
+ ${S.emp.map(e=>`<div class="card row"><input style="flex:1;min-width:100px" value="${esc(e.n)}" data-c="en2" data-id="${e.id}" aria-label="姓名"><select data-c="et" data-id="${e.id}" aria-label="計薪方式"><option value="d" ${e.t!='m'?'selected':''}>日薪</option><option value="m" ${e.t=='m'?'selected':''}>月薪</option></select><input type="number" inputmode="numeric" value="${e.w||''}" placeholder="${e.t=='m'?'月薪金額':'日薪金額'}" data-c="ew" data-id="${e.id}" aria-label="薪資金額"><button class="x" data-a="de" data-id="${e.id}" aria-label="刪除員工">×</button></div>`).join('')}
  <button class="btn" data-a="ae2">＋ 新增員工</button>
  <h2>加給項目</h2>
  ${S.presets.map((p,i)=>`<div class="card row" style="flex-wrap:nowrap"><input style="flex:1" value="${esc(p.n)}" data-c="pn" data-i="${i}"><input type="number" inputmode="numeric" value="${p.a}" data-c="pa" data-i="${i}"><button class="x" data-a="dp" data-i="${i}" aria-label="刪除項目">×</button></div>`).join('')}
@@ -165,7 +165,7 @@ document.addEventListener('click',ev=>{
  else if(a=='rp'){wk(D.work).photos.splice(i,1)}
  else if(a=='xl'){exportXlsx();return}
  else if(a=='half'){D.half=+v}
- else if(a=='ae2'){S.emp.push({id:uid(),n:'員工'+(S.emp.length+1),w:0})}
+ else if(a=='ae2'){S.emp.push({id:uid(),n:'員工'+(S.emp.length+1),t:'d',w:0})}
  else if(a=='de'){if(!confirm('刪除這位員工？其歷史資料會一併不再顯示。'))return;S.emp=S.emp.filter(e=>e.id!=id)}
  else if(a=='ap'){S.presets.push({n:'新項目',a:0})}
  else if(a=='dp'){S.presets.splice(i,1)}
@@ -186,6 +186,7 @@ document.addEventListener('change',ev=>{
  else if(c=='en'){wk(D.work).exp[i].n=t.value}
  else if(c=='ea'){wk(D.work).exp[i].a=+t.value||0}
  else if(c=='en2'){S.emp.find(e=>e.id==id).n=t.value}
+ else if(c=='et'){S.emp.find(e=>e.id==id).t=t.value}
  else if(c=='ew'){S.emp.find(e=>e.id==id).w=+t.value||0}
  else if(c=='pn'){S.presets[i].n=t.value}
  else if(c=='pa'){S.presets[i].a=+t.value||0}
@@ -219,11 +220,11 @@ function xlsx(sheets){const N='http://schemas.openxmlformats.org/',R=N+'officeDo
 function exportXlsx(){
  const ym=D.ym,n=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate(),pd=x=>String(x).padStart(2,'0'),
  a1=ym+'-01',b1=ym+'-15',a2=ym+'-16',b2=ym+'-'+pd(n),B=a=>a.map(v=>({v,b:1}));
- const R=S.emp.map(e=>({e,m:calc(e,a1,b2),p1:calc(e,a1,b1),p2:calc(e,a2,b2)}));
+ const R=S.emp.map(e=>({e,m:calc(e,a1,b2,2),p1:calc(e,a1,b1),p2:calc(e,a2,b2)}));
  const sum=k=>R.reduce((s,r)=>s+r.m[k],0);
- const s1=[[{v:ym+' 月薪結算',b:1}],[],B(['員工','日薪','出勤天數','半天','月薪','加給','借支','實領','1–15日實領','16日–月底實領'])];
- R.forEach(r=>s1.push([r.e.n,r.e.w,r.m.f,r.m.h,r.m.base,r.m.bn,r.m.adv,r.m.net,r.p1.net,r.p2.net]));
- s1.push(B(['合計','','','',sum('base'),sum('bn'),sum('adv'),sum('net'),R.reduce((s,r)=>s+r.p1.net,0),R.reduce((s,r)=>s+r.p2.net,0)]));
+ const s1=[[{v:ym+' 月薪結算',b:1}],[],B(['員工','計薪方式','日薪／月薪金額','出勤天數','半天','薪資','加給','借支','實領','1–15日實領','16日–月底實領'])];
+ R.forEach(r=>s1.push([r.e.n,r.e.t=='m'?'月薪':'日薪',r.e.w,r.m.f,r.m.h,r.m.base,r.m.bn,r.m.adv,r.m.net,r.p1.net,r.p2.net]));
+ s1.push(B(['合計','','','','',sum('base'),sum('bn'),sum('adv'),sum('net'),R.reduce((s,r)=>s+r.p1.net,0),R.reduce((s,r)=>s+r.p2.net,0)]));
  const s2=[B(['員工',...Array.from({length:n},(_,i)=>i+1),'合計'])];
  S.emp.forEach(e=>{let t=0;const c=Array.from({length:n},(_,i)=>{const s=g(ym+'-'+pd(i+1),e.id).s,v=s=='f'?1:s=='h'?.5:0;t+=v;return v});s2.push([e.n,...c,t])});
  const s3=[B(['日期','施工項目','施工人員','花費項目','金額'])];let ex=0;
@@ -231,8 +232,8 @@ function exportXlsx(){
   if(!r.exp.length&&!it&&!wr)return;
   if(!r.exp.length)s3.push([d,it,wr]);else r.exp.forEach((x,i)=>{ex+=+x.a||0;s3.push([d,i?'':it,i?'':wr,x.n,+x.a||0])})});
  s3.push(B(['施工花費合計','','','',ex]));
- s1.push([],B(['當月總支出']),['月薪合計',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]));
- const s4=[[{v:ym+' 當月總支出',b:1}],[],['月薪合計（出勤薪資）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
+ s1.push([],B(['當月總支出']),['薪資合計',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]));
+ const s4=[[{v:ym+' 當月總支出',b:1}],[],['薪資合計（日薪＋月薪）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
  const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['施工花費',s3],['當月總支出',s4]])),a=document.createElement('a');
  a.href=u;a.download='工班記事_'+ym+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 render();
