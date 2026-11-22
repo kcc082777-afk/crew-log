@@ -120,9 +120,12 @@ function vPay(){
  const T=rows.reduce((s,r)=>({base:s.base+r.base,bn:s.bn+r.bn,adv:s.adv+r.adv,net:s.net+r.net}),{base:0,bn:0,adv:0,net:0});
  return `<div class="date"><input type="month" value="${D.ym}" data-c="ym"><div class="seg"><button class="${D.half==1?'on f':''}" data-a="half" data-v="1">1–15日</button><button class="${D.half==2?'on f':''}" data-a="half" data-v="2">16日–月底</button></div></div>
  <button class="btn" data-a="xl" style="margin-bottom:10px">匯出 Excel（${D.ym} 整月）</button><p class="lbl">結算區間 ${a} 至 ${b}。實領 = 薪資 + 加給 − 借支。</p>
- <div class="scroll"><table><thead><tr><th>員工</th><th>出勤</th><th>半天</th><th>薪資</th><th>加給</th><th>借支</th><th>實領</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.e.n)}</td><td>${r.f}</td><td>${r.h}</td><td>${money(r.base)}</td><td>${money(r.bn)}</td><td>${money(r.adv)}</td><td class="${r.net<0?'neg':''}"><b>${money(r.net)}</b></td></tr>`).join('')}</tbody><tfoot><tr><td>合計</td><td></td><td></td><td>${money(T.base)}</td><td>${money(T.bn)}</td><td>${money(T.adv)}</td><td>${money(T.net)}</td></tr></tfoot></table></div>`;
+ <div class="scroll"><table><thead><tr><th>員工</th><th>出勤</th><th>半天</th><th>薪資</th><th>加給</th><th>借支</th><th>實領</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.e.n)}</td><td>${r.f}</td><td>${r.h}</td><td>${money(r.base)}</td><td>${money(r.bn)}</td><td>${money(r.adv)}</td><td class="${r.net<0?'neg':''}"><b>${money(r.net)}</b></td></tr>`).join('')}</tbody><tfoot><tr><td>合計</td><td></td><td></td><td>${money(T.base)}</td><td>${money(T.bn)}</td><td>${money(T.adv)}</td><td>${money(T.net)}</td></tr></tfoot></table></div>${vSum()}`;
 }
 
+function vSum(){const a=D.ym+'-01',b=D.ym+'-31';let base=0,bn=0,adv=0,ex=0;S.emp.forEach(e=>{const c=calc(e,a,b);base+=c.base;bn+=c.bn;adv+=c.adv});for(const d in S.work)if(d>=a&&d<=b)ex+=S.work[d].exp.reduce((s,x)=>s+(+x.a||0),0);
+ const L=(t,v,c)=>`<div class="row" style="margin-top:6px"><span>${t}</span><span${c||''}>${money(v)}</span></div>`;
+ return `<h2>${D.ym} 整月</h2><div class="card">${L('月薪合計（出勤薪資）',base)}${L('加給合計',bn)}${L('施工花費合計',ex)}<div class="total"><span>當月總支出</span><span>${money(base+bn+ex)}</span></div><p class="lbl" style="margin:8px 0 0">借支 ${money(adv)} 已從實領扣除，不重複計入總支出。</p></div>`}
 function vHis(){
  const [y,m]=D.hm.split('-'),n=new Date(+y,+m,0).getDate(),days=Array.from({length:n},(_,i)=>i+1);
  const key=i=>D.hm+'-'+String(i).padStart(2,'0');
@@ -228,6 +231,7 @@ function exportXlsx(){
   if(!r.exp.length&&!it&&!wr)return;
   if(!r.exp.length)s3.push([d,it,wr]);else r.exp.forEach((x,i)=>{ex+=+x.a||0;s3.push([d,i?'':it,i?'':wr,x.n,+x.a||0])})});
  s3.push(B(['施工花費合計','','','',ex]));
+ s1.push([],B(['當月總支出']),['月薪合計',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]));
  const s4=[[{v:ym+' 當月總支出',b:1}],[],['月薪合計（出勤薪資）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
  const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['施工花費',s3],['當月總支出',s4]])),a=document.createElement('a');
  a.href=u;a.download='工班記事_'+ym+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
