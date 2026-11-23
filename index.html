@@ -62,7 +62,15 @@ nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px
 nav button{flex:1;border:0;background:transparent;color:var(--mute);padding:12px 2px;font-size:15px;cursor:pointer}
 nav button.on{color:var(--pri);font-weight:800;box-shadow:inset 0 3px 0 var(--hi)}
 :focus-visible{outline:2px solid var(--pri);outline-offset:2px}
-.empty{color:var(--mute);padding:10px 0}.wd{margin:-6px 0 12px;text-align:center;font-weight:700;font-size:17px}.wd.red{color:var(--bad)}.wx{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.wx button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:9px 12px;font-size:16px;cursor:pointer}.wx button.on{background:var(--pri);color:var(--onpri);border-color:var(--pri);font-weight:700}
+.empty{color:var(--mute);padding:10px 0}.wd{margin:-6px 0 12px;text-align:center;font-weight:700;font-size:17px}.wd.red{color:var(--bad)}.hs th.rd{color:var(--bad);font-weight:800}
+:root{--wxs:#d6453a;--wxr:#2f9461;--wxt:#3f6fb8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--wxs:#ff6b5e;--wxr:#4cc38a;--wxt:#6aa3ee}}
+:root[data-theme="dark"]{--wxs:#ff6b5e;--wxr:#4cc38a;--wxt:#6aa3ee}
+.wc{display:block;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ink);margin:0 auto;box-sizing:border-box;background:repeating-linear-gradient(to right,var(--ink) 0 2px,transparent 2px 4px) center/100% 1px no-repeat,linear-gradient(to bottom,var(--a,transparent) 50%,var(--b,transparent) 50%)}
+.wt td,.wt th{text-align:center;padding:3px 2px;min-width:24px;font-size:13px}
+.wt td:first-child,.wt th:first-child{text-align:center;min-width:38px;padding:3px 6px;border-right:1px solid var(--line);z-index:1}
+.wl{display:inline-block;width:14px;height:14px;vertical-align:-3px;margin:0 3px 0 8px}
+.wx{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.wx button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:9px 12px;font-size:16px;cursor:pointer}.wx button.on{background:var(--pri);color:var(--onpri);border-color:var(--pri);font-weight:700}
 .cb{flex:none;padding:9px 10px;font-size:17px;line-height:1}
 #calc{position:fixed;inset:0;z-index:10;display:none;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center}
 #calc.on{display:flex}
@@ -110,7 +118,9 @@ const HOL={
 '2027-02-28':'和平紀念日','2027-03-01':'和平紀念日補假','2027-04-04':'兒童節','2027-04-05':'清明節','2027-04-06':'兒童節補假','2027-04-30':'勞動節補假','2027-05-01':'勞動節',
 '2027-06-09':'端午節','2027-09-15':'中秋節','2027-09-28':'教師節','2027-10-10':'國慶日','2027-10-11':'國慶日補假','2027-10-25':'光復節',
 '2027-12-24':'行憲紀念日補假','2027-12-25':'行憲紀念日','2027-12-31':'元旦補假'};
-const WX=[['晴天','☀️'],['多雲','⛅'],['陰天','☁️'],['雨天','🌧️'],['大雨','⛈️'],['颱風','🌀']];
+const WX=[['晴天','☀️'],['雨天','🌧️'],['颱風','🌀']];
+function isHol(d){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d||'');if(!m)return false;const w=new Date(+m[1],+m[2]-1,+m[3]).getDay();return w==0||w==6||!!HOL[d]}
+const wxRow=(cur,act)=>WX.map(([k,i])=>`<button class="${cur==k?'on':''}" data-a="${act}" data-v="${k}" aria-pressed="${cur==k}">${i} ${k}</button>`).join('');
 function wdLine(d){
  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d||'');if(!m)return'';
  const wd=new Date(+m[1],+m[2]-1,+m[3]).getDay(),nm=HOL[d],red=wd==0||wd==6||!!nm;
@@ -128,12 +138,12 @@ function vAtt(){
 }
 
 function vWork(){
- const d=D.work,r=S.work[d]||{items:[],workers:[],exp:[],note:'',photos:[],weather:''};
+ const d=D.work,r=S.work[d]||{items:[],workers:[],exp:[],note:'',photos:[],weather:'',weatherPm:''};
  const tot=r.exp.reduce((s,x)=>s+(+x.a||0),0);
- const dates=Object.keys(S.work).filter(k=>{const x=S.work[k];return x.items.length||x.photos.length||x.exp.length||x.note||x.weather}).sort().reverse();
+ const dates=Object.keys(S.work).filter(k=>{const x=S.work[k];return x.items.length||x.photos.length||x.exp.length||x.note||x.weather||x.weatherPm}).sort().reverse();
  return dateBar('work')+
  (dates.length?`<div class="lbl">有紀錄的日期</div><div style="margin-bottom:10px">${dates.slice(0,12).map(k=>`<button class="chip" data-a="jump" data-v="${k}">${k.slice(5)}</button>`).join('')}</div>`:'')+
- `<div class="card"><b>當日天氣</b><div class="wx">${WX.map(([k,i])=>`<button class="${r.weather==k?'on':''}" data-a="wx" data-v="${k}" aria-pressed="${r.weather==k}">${i} ${k}</button>`).join('')}</div></div>
+ `<div class="card"><b>當日天氣</b><p class="lbl" style="margin:10px 0 0">上午</p><div class="wx">${wxRow(r.weather,'wx')}</div><p class="lbl" style="margin:12px 0 0">下午</p><div class="wx">${wxRow(r.weatherPm,'wx2')}</div></div>
  `+`<div class="card"><b>施工項目</b>${r.items.map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" value="${esc(x)}" data-c="item" data-i="${i}"><button class="x" data-a="ri" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ai">＋ 新增項目</button></div></div>
  <div class="card"><b>施工人員</b><div style="margin-top:6px">${S.emp.map(e=>`<label class="chip" style="padding:6px 12px"><input type="checkbox" style="margin-right:6px" ${r.workers.includes(e.id)?'checked':''} data-c="wkr" data-id="${e.id}">${esc(e.n)}</label>`).join('')||'<span class="empty">尚無員工</span>'}</div></div>
  <div class="card"><b>相片</b><div class="ph">${r.photos.map((p,i)=>`<div><img src="${p}" alt="施工相片"><button class="x" data-a="rp" data-i="${i}" aria-label="刪除相片">×</button></div>`).join('')}</div><div style="margin-top:8px"><input type="file" accept="image/*" multiple data-c="photo"></div></div>
@@ -158,9 +168,26 @@ function vSum(){const a=D.ym+'-01',b=D.ym+'-31';let base=0,bn=0,adv=0,ex=0;S.emp
 function vHis(){
  const [y,m]=D.hm.split('-'),n=new Date(+y,+m,0).getDate(),days=Array.from({length:n},(_,i)=>i+1);
  const key=i=>D.hm+'-'+String(i).padStart(2,'0');
- return `<div class="date"><input type="month" value="${D.hm}" data-c="hm"></div><p class="lbl"><span class="f">●</span> 出勤　<span class="h">◐</span> 半天　<span class="n">·</span> 未出勤</p>
- <div class="scroll"><table class="hs"><thead><tr><th>員工</th>${days.map(i=>`<th>${i}</th>`).join('')}<th>合計</th></tr></thead><tbody>${S.emp.map(e=>{let f=0,h=0;const c=days.map(i=>{const s=g(key(i),e.id).s;if(s=='f'){f++;return'<td class="f">●</td>'}if(s=='h'){h++;return'<td class="h">◐</td>'}return'<td class="n">·</td>'}).join('');return `<tr><td>${esc(e.n)}</td>${c}<td>${f+h/2}</td></tr>`}).join('')}</tbody></table></div>`;
+ return `<div class="date"><input type="month" value="${D.hm}" data-c="hm"></div><button class="btn" data-a="xa" style="margin-bottom:10px">匯出出勤紀錄 Excel（${D.hm}）</button><p class="lbl"><span class="f">●</span> 出勤　<span class="h">◐</span> 半天　<span class="n">·</span> 未出勤　<span style="color:var(--bad);font-weight:700">紅字</span> 假日</p>
+ <div class="scroll"><table class="hs"><thead><tr><th>員工</th>${days.map(i=>`<th class="${isHol(key(i))?'rd':''}">${i}</th>`).join('')}<th>合計</th></tr></thead><tbody>${S.emp.map(e=>{let f=0,h=0;const c=days.map(i=>{const s=g(key(i),e.id).s;if(s=='f'){f++;return'<td class="f">●</td>'}if(s=='h'){h++;return'<td class="h">◐</td>'}return'<td class="n">·</td>'}).join('');return `<tr><td>${esc(e.n)}</td>${c}<td>${f+h/2}</td></tr>`}).join('')}</tbody></table></div>`+wxChart();
 }
+
+
+const WXC={'晴天':'var(--wxs)','雨天':'var(--wxr)','颱風':'var(--wxt)'};
+function wxChart(){
+ const y=D.wy||+D.hm.slice(0,4),P=n=>String(n).padStart(2,'0'),MN=['一','二','三','四','五','六','七','八','九','十','十一','十二'],
+ col=k=>k?(WXC[k]||'var(--no)'):'transparent',
+ leg=(k,c)=>`<i class="wc wl" style="--a:${c};--b:${c}"></i>${k}`;
+ const rows=MN.map((nm,mi)=>{const dim=new Date(y,mi+1,0).getDate();
+  return `<tr><td>${nm}</td>${Array.from({length:31},(_,di)=>{
+   if(di+1>dim)return'<td></td>';
+   const r=S.work[`${y}-${P(mi+1)}-${P(di+1)}`]||{},am=r.weather||'',pm=r.weatherPm||'',
+   tip=(am||pm)?`${mi+1}/${di+1}　上午${am||'－'}　下午${pm||'－'}`:'';
+   return `<td><i class="wc" style="--a:${col(am)};--b:${col(pm)}" title="${tip}"></i></td>`}).join('')}</tr>`}).join('');
+ return `<h2>晴雨表</h2><div class="date"><button class="btn ghost" data-a="wy" data-v="-1" aria-label="前一年">‹</button><div style="flex:1;text-align:center;font-weight:700;align-self:center">${y} 年</div><button class="btn ghost" data-a="wy" data-v="1" aria-label="後一年">›</button></div>
+ <button class="btn" data-a="xw" style="margin:10px 0">匯出晴雨表 Excel（${y} 年）</button>
+ <p class="lbl">範例：${leg('晴天','var(--wxs)')}${leg('雨天','var(--wxr)')}${leg('颱風','var(--wxt)')}<br>每格上半圓＝上午、下半圓＝下午（依施工紀錄的天氣自動填色）</p>
+ <div class="scroll"><table class="wt"><thead><tr><th>日期</th>${Array.from({length:31},(_,i)=>`<th>${i+1}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`}
 
 function vSet(){
  return `<h2 style="margin-top:0">員工與日薪</h2><p class="lbl">目前 ${S.emp.length} 人，可繼續新增。日薪制：半天以日薪一半計算。月薪制：每期（1–15日、16日–月底）固定發月薪的一半，不隨出勤增減。</p>
@@ -182,6 +209,7 @@ document.addEventListener('click',ev=>{
  const t=ev.target.closest('[data-a]');if(!t)return;
  const a=t.dataset.a,id=t.dataset.id,v=t.dataset.v,i=+t.dataset.i;
  if(a=='tab'){D.tab=v;window.scrollTo(0,0)}
+ else if(a=='wy'){D.wy=(D.wy||+D.hm.slice(0,4))+ +v}
  else if(a=='dd'){D[t.dataset.k]=shift(D[t.dataset.k],+v)}
  else if(a=='st'){w(D.att,id).s=v}
  else if(a=='rb'){w(D.att,id).b.splice(i,1)}
@@ -190,10 +218,13 @@ document.addEventListener('click',ev=>{
  else if(a=='ai'){wk(D.work).items.push('')}
  else if(a=='ri'){wk(D.work).items.splice(i,1)}
  else if(a=='wx'){const r=wk(D.work);r.weather=r.weather==v?'':v}
+ else if(a=='wx2'){const r=wk(D.work);r.weatherPm=r.weatherPm==v?'':v}
  else if(a=='ae'){wk(D.work).exp.push({n:'',a:0})}
  else if(a=='re'){wk(D.work).exp.splice(i,1)}
  else if(a=='rp'){wk(D.work).photos.splice(i,1)}
  else if(a=='xl'){exportXlsx();return}
+ else if(a=='xa'){exportAtt();return}
+ else if(a=='xw'){exportWx();return}
  else if(a=='half'){D.half=+v}
  else if(a=='ae2'){S.emp.push({id:uid(),n:'員工'+(S.emp.length+1),t:'d',w:0})}
  else if(a=='de'){if(!confirm('刪除這位員工？其歷史資料會一併不再顯示。'))return;S.emp=S.emp.filter(e=>e.id!=id)}
@@ -238,15 +269,15 @@ function zip(fs){const e=new TextEncoder(),parts=[],cd=[];let off=0;
  return new Blob([...parts,...cd,new Uint8Array(z.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
 const xe=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const col=i=>{let s='';for(i++;i>0;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s};
-function sheetXml(rows){return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="40" width="14" customWidth="1"/></cols><sheetData>'+rows.map((r,i)=>`<row r="${i+1}">`+r.map((c,j)=>{if(c==null||c==='')return'';const o=typeof c=='object'?c:{v:c},s=o.b?' s="1"':'',ref=col(j)+(i+1);return typeof o.v=='number'?`<c r="${ref}"${s}><v>${o.v}</v></c>`:`<c r="${ref}"${s} t="inlineStr"><is><t>${xe(o.v)}</t></is></c>`}).join('')+'</row>').join('')+'</sheetData></worksheet>'}
+function sheetXml(rows,wc){return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+(wc?'<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>':'')+'<cols>'+(wc||'<col min="1" max="40" width="14" customWidth="1"/>')+'</cols><sheetData>'+rows.map((r,i)=>`<row r="${i+1}">`+r.map((c,j)=>{if(c==null)return'';const o=typeof c=='object'?c:{v:c};if(o.v==null||(o.v===''&&o.s==null))return'';const si=o.s!=null?o.s:o.b?1:0,s=si?` s="${si}"`:'',ref=col(j)+(i+1);if(o.v==='')return `<c r="${ref}"${s}/>`;return typeof o.v=='number'?`<c r="${ref}"${s}><v>${o.v}</v></c>`:`<c r="${ref}"${s} t="inlineStr"><is><t>${xe(o.v)}</t></is></c>`}).join('')+'</row>').join('')+'</sheetData>'+(wc?'<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>':'')+'</worksheet>'}
 function xlsx(sheets){const N='http://schemas.openxmlformats.org/',R=N+'officeDocument/2006/relationships',H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
  return zip([
  {n:'[Content_Types].xml',d:H+'<Types xmlns="'+N+'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'</Types>'},
  {n:'_rels/.rels',d:H+'<Relationships xmlns="'+N+'package/2006/relationships"><Relationship Id="rId1" Type="'+R+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
  {n:'xl/workbook.xml',d:H+'<workbook xmlns="'+N+'spreadsheetml/2006/main" xmlns:r="'+R+'"><sheets>'+sheets.map((s,i)=>`<sheet name="${xe(s[0])}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')+'</sheets></workbook>'},
  {n:'xl/_rels/workbook.xml.rels',d:H+'<Relationships xmlns="'+N+'package/2006/relationships">'+sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${R}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')+`<Relationship Id="rId${sheets.length+1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`},
- {n:'xl/styles.xml',d:H+'<styleSheet xmlns="'+N+'spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
- ...sheets.map((s,i)=>({n:`xl/worksheets/sheet${i+1}.xml`,d:sheetXml(s[1])}))])}
+ {n:'xl/styles.xml',d:H+'<styleSheet xmlns="'+N+'spreadsheetml/2006/main"><fonts count="4"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFC00000"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD6453A"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF2F9461"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF3F6FB8"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF9AA0A6"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE3E3E3"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FF999999"/></left><right style="thin"><color rgb="FF999999"/></right><top style="thin"><color rgb="FF999999"/></top><bottom style="thin"><color rgb="FF999999"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="12"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="3" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
+ ...sheets.map((s,i)=>({n:`xl/worksheets/sheet${i+1}.xml`,d:sheetXml(s[1],s[2])}))])}
 function exportXlsx(){
  const ym=D.ym,n=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate(),pd=x=>String(x).padStart(2,'0'),
  a1=ym+'-01',b1=ym+'-15',a2=ym+'-16',b2=ym+'-'+pd(n),B=a=>a.map(v=>({v,b:1}));
@@ -257,15 +288,31 @@ function exportXlsx(){
  s1.push(B(['合計','','','','',sum('base'),sum('bn'),sum('adv'),sum('net'),R.reduce((s,r)=>s+r.p1.net,0),R.reduce((s,r)=>s+r.p2.net,0)]));
  const s2=[B(['員工',...Array.from({length:n},(_,i)=>i+1),'合計'])];
  S.emp.forEach(e=>{let t=0;const c=Array.from({length:n},(_,i)=>{const s=g(ym+'-'+pd(i+1),e.id).s,v=s=='f'?1:s=='h'?.5:0;t+=v;return v});s2.push([e.n,...c,t])});
- const s3=[B(['日期','天氣','施工項目','施工人員','花費項目','金額'])];let ex=0;
+ const s3=[B(['日期','上午天氣','下午天氣','施工項目','施工人員','花費項目','金額'])];let ex=0;
  Object.keys(S.work).filter(d=>d>=a1&&d<=b2).sort().forEach(d=>{const r=S.work[d],it=r.items.filter(Boolean).join('、'),wr=r.workers.map(id=>S.emp.find(e=>e.id==id)?.n).filter(Boolean).join('、');
-  if(!r.exp.length&&!it&&!wr&&!r.weather)return;
-  if(!r.exp.length)s3.push([d,r.weather||'',it,wr]);else r.exp.forEach((x,i)=>{ex+=+x.a||0;s3.push([d,i?'':(r.weather||''),i?'':it,i?'':wr,x.n,+x.a||0])})});
- s3.push(B(['施工花費合計','','','','',ex]));
+  if(!r.exp.length&&!it&&!wr&&!r.weather&&!r.weatherPm)return;
+  if(!r.exp.length)s3.push([d,r.weather||'',r.weatherPm||'',it,wr]);else r.exp.forEach((x,i)=>{ex+=+x.a||0;s3.push([d,i?'':(r.weather||''),i?'':(r.weatherPm||''),i?'':it,i?'':wr,x.n,+x.a||0])})});
+ s3.push(B(['施工花費合計','','','','','',ex]));
  s1.push([],B(['當月總支出']),['薪資合計',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]));
  const s4=[[{v:ym+' 當月總支出',b:1}],[],['薪資合計（日薪＋月薪）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
  const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['施工花費',s3],['當月總支出',s4]])),a=document.createElement('a');
  a.href=u;a.download='工班記事_'+ym+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+
+function dlx(sheets,name){const u=URL.createObjectURL(xlsx(sheets)),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+function exportAtt(){
+ const hm=D.hm,Y=+hm.slice(0,4),M=+hm.slice(5),n=new Date(Y,M,0).getDate(),days=Array.from({length:n},(_,i)=>i+1),P=x=>String(x).padStart(2,'0'),k=i=>hm+'-'+P(i),
+ hd=days.map(i=>({v:i,s:isHol(k(i))?10:9})),wd=days.map(i=>({v:'日一二三四五六'[new Date(Y,M-1,i).getDay()],s:isHol(k(i))?10:9}));
+ const rows=[[{v:hm+' 員工出勤紀錄',b:1}],['1＝出勤　0.5＝半天　空白＝未出勤　紅字＝假日（週末與台灣國定假日）'],[],[{v:'員工',s:9},...hd,{v:'出勤天數',s:9}],[{v:'星期',s:9},...wd,{v:'',s:9}]],cnt=days.map(()=>0);
+ S.emp.forEach(e=>{let t=0;const c=days.map((i,di)=>{const q=g(k(i),e.id).s,v=q=='f'?1:q=='h'?.5:0;t+=v;cnt[di]+=v;return {v:v||'',s:11}});rows.push([{v:e.n,s:11},...c,{v:t,s:11}])});
+ rows.push([{v:'每日出勤合計',s:9},...cnt.map(v=>({v:v||'',s:9})),{v:cnt.reduce((a,b)=>a+b,0),s:9}]);
+ dlx([['出勤紀錄 '+hm,rows,`<col min="1" max="1" width="14" customWidth="1"/><col min="2" max="${n+1}" width="5" customWidth="1"/><col min="${n+2}" max="${n+2}" width="10" customWidth="1"/>`]],'出勤紀錄_'+hm+'.xlsx')}
+function exportWx(){
+ const y=D.wy||+D.hm.slice(0,4),P=x=>String(x).padStart(2,'0'),MN=['一','二','三','四','五','六','七','八','九','十','十一','十二'],ST={'晴天':[3,'晴'],'雨天':[4,'雨'],'颱風':[5,'颱']},
+ cell=(w,ok)=>!ok?{v:'',s:8}:w?(ST[w]?{v:ST[w][1],s:ST[w][0]}:{v:w[0],s:6}):{v:'',s:7};
+ const rows=[[{v:y+' 年晴雨表',b:1}],[{v:'範例：',b:1},{v:'晴天',s:3},{v:'雨天',s:4},{v:'颱風',s:5},'　上排＝上午、下排＝下午（資料取自施工紀錄的天氣）'],[],[{v:'月份',s:9},{v:'時段',s:9},...Array.from({length:31},(_,i)=>({v:i+1,s:9}))]];
+ MN.forEach((nm,mi)=>{const dim=new Date(y,mi+1,0).getDate();
+  [['上午','weather'],['下午','weatherPm']].forEach(([lb,f],r)=>rows.push([{v:r?'':nm+'月',s:9},{v:lb,s:9},...Array.from({length:31},(_,di)=>cell((S.work[`${y}-${P(mi+1)}-${P(di+1)}`]||{})[f],di+1<=dim))]))});
+ dlx([['晴雨表 '+y,rows,'<col min="1" max="1" width="9" customWidth="1"/><col min="2" max="2" width="7" customWidth="1"/><col min="3" max="33" width="5" customWidth="1"/>']],'晴雨表_'+y+'.xlsx')}
 /* 計算機 */
 const C={i:-1,e:''};
 function calcEval(src){
