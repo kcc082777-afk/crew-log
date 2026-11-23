@@ -62,7 +62,7 @@ nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px
 nav button{flex:1;border:0;background:transparent;color:var(--mute);padding:12px 2px;font-size:15px;cursor:pointer}
 nav button.on{color:var(--pri);font-weight:800;box-shadow:inset 0 3px 0 var(--hi)}
 :focus-visible{outline:2px solid var(--pri);outline-offset:2px}
-.empty{color:var(--mute);padding:10px 0}
+.empty{color:var(--mute);padding:10px 0}.wd{margin:-6px 0 12px;text-align:center;font-weight:700;font-size:17px}.wd.red{color:var(--bad)}.wx{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.wx button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:9px 12px;font-size:16px;cursor:pointer}.wx button.on{background:var(--pri);color:var(--onpri);border-color:var(--pri);font-weight:700}
 .cb{flex:none;padding:9px 10px;font-size:17px;line-height:1}
 #calc{position:fixed;inset:0;z-index:10;display:none;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center}
 #calc.on{display:flex}
@@ -100,7 +100,22 @@ const w=(d,id)=>((S.att[d]??={})[id]??={s:'n',b:[],a:0});
 const wk=d=>S.work[d]??={items:[],workers:[],exp:[],note:'',photos:[]};
 const TABS=[['att','出勤'],['work','施工'],['pay','結算'],['his','歷史'],['set','設置']];
 
-function dateBar(key){return `<div class="date"><button class="btn ghost" data-a="dd" data-k="${key}" data-v="-1">‹</button><input type="date" value="${D[key]}" data-c="date" data-k="${key}"><button class="btn ghost" data-a="dd" data-k="${key}" data-v="1">›</button></div>`}
+/* 台灣假日（行政院人事行政總處辦公日曆表，2026–2027；皆只補假不補班） */
+const HOL={
+'2026-01-01':'元旦','2026-02-15':'小年夜','2026-02-16':'除夕','2026-02-17':'春節','2026-02-18':'春節','2026-02-19':'春節','2026-02-20':'春節','2026-02-21':'春節',
+'2026-02-27':'和平紀念日補假','2026-02-28':'和平紀念日','2026-04-03':'兒童節補假','2026-04-04':'兒童節','2026-04-05':'清明節','2026-04-06':'清明節補假',
+'2026-05-01':'勞動節','2026-06-19':'端午節','2026-09-25':'中秋節','2026-09-28':'教師節','2026-10-09':'國慶日補假','2026-10-10':'國慶日',
+'2026-10-25':'光復節','2026-10-26':'光復節補假','2026-12-25':'行憲紀念日',
+'2027-01-01':'元旦','2027-02-04':'小年夜','2027-02-05':'除夕','2027-02-06':'春節','2027-02-07':'春節','2027-02-08':'春節','2027-02-09':'春節補假','2027-02-10':'春節補假',
+'2027-02-28':'和平紀念日','2027-03-01':'和平紀念日補假','2027-04-04':'兒童節','2027-04-05':'清明節','2027-04-06':'兒童節補假','2027-04-30':'勞動節補假','2027-05-01':'勞動節',
+'2027-06-09':'端午節','2027-09-15':'中秋節','2027-09-28':'教師節','2027-10-10':'國慶日','2027-10-11':'國慶日補假','2027-10-25':'光復節',
+'2027-12-24':'行憲紀念日補假','2027-12-25':'行憲紀念日','2027-12-31':'元旦補假'};
+const WX=[['晴天','☀️'],['多雲','⛅'],['陰天','☁️'],['雨天','🌧️'],['大雨','⛈️'],['颱風','🌀']];
+function wdLine(d){
+ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d||'');if(!m)return'';
+ const wd=new Date(+m[1],+m[2]-1,+m[3]).getDay(),nm=HOL[d],red=wd==0||wd==6||!!nm;
+ return `<div class="wd${red?' red':''}">星期${'日一二三四五六'[wd]}${nm?'　'+nm:''}</div>`}
+function dateBar(key){return `<div class="date"><button class="btn ghost" data-a="dd" data-k="${key}" data-v="-1">‹</button><input type="date" value="${D[key]}" data-c="date" data-k="${key}"><button class="btn ghost" data-a="dd" data-k="${key}" data-v="1">›</button></div>${wdLine(D[key])}`}
 
 function vAtt(){
  const d=D.att;
@@ -113,16 +128,17 @@ function vAtt(){
 }
 
 function vWork(){
- const d=D.work,r=S.work[d]||{items:[],workers:[],exp:[],note:'',photos:[]};
+ const d=D.work,r=S.work[d]||{items:[],workers:[],exp:[],note:'',photos:[],weather:''};
  const tot=r.exp.reduce((s,x)=>s+(+x.a||0),0);
- const dates=Object.keys(S.work).filter(k=>{const x=S.work[k];return x.items.length||x.photos.length||x.exp.length||x.note}).sort().reverse();
+ const dates=Object.keys(S.work).filter(k=>{const x=S.work[k];return x.items.length||x.photos.length||x.exp.length||x.note||x.weather}).sort().reverse();
  return dateBar('work')+
  (dates.length?`<div class="lbl">有紀錄的日期</div><div style="margin-bottom:10px">${dates.slice(0,12).map(k=>`<button class="chip" data-a="jump" data-v="${k}">${k.slice(5)}</button>`).join('')}</div>`:'')+
- `<div class="card"><b>施工項目</b>${r.items.map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" value="${esc(x)}" data-c="item" data-i="${i}"><button class="x" data-a="ri" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ai">＋ 新增項目</button></div></div>
+ `<div class="card"><b>當日天氣</b><div class="wx">${WX.map(([k,i])=>`<button class="${r.weather==k?'on':''}" data-a="wx" data-v="${k}" aria-pressed="${r.weather==k}">${i} ${k}</button>`).join('')}</div></div>
+ `+`<div class="card"><b>施工項目</b>${r.items.map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" value="${esc(x)}" data-c="item" data-i="${i}"><button class="x" data-a="ri" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ai">＋ 新增項目</button></div></div>
  <div class="card"><b>施工人員</b><div style="margin-top:6px">${S.emp.map(e=>`<label class="chip" style="padding:6px 12px"><input type="checkbox" style="margin-right:6px" ${r.workers.includes(e.id)?'checked':''} data-c="wkr" data-id="${e.id}">${esc(e.n)}</label>`).join('')||'<span class="empty">尚無員工</span>'}</div></div>
  <div class="card"><b>相片</b><div class="ph">${r.photos.map((p,i)=>`<div><img src="${p}" alt="施工相片"><button class="x" data-a="rp" data-i="${i}" aria-label="刪除相片">×</button></div>`).join('')}</div><div style="margin-top:8px"><input type="file" accept="image/*" multiple data-c="photo"></div></div>
  <div class="card"><b>施工記事</b><textarea data-c="note" placeholder="備註">${esc(r.note)}</textarea></div>
- <div class="card"><b>當日花費</b>${r.exp.map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" value="${esc(x.n)}" placeholder="項目" data-c="en" data-i="${i}"><input type="number" inputmode="numeric" value="${x.a||''}" placeholder="金額" data-c="ea" data-i="${i}"><button class="btn ghost cb" data-calc="open" data-i="${i}" aria-label="計算機">🧮</button><button class="x" data-a="re" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ae">＋ 新增花費</button></div><div class="total"><span>當日花費合計</span><span>${money(tot)}</span></div></div>`;
+ <div class="card"><b>當日花費</b>${r.exp.map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" value="${esc(x.n)}" placeholder="項目" data-c="en" data-i="${i}"><input type="number" inputmode="numeric" value="${x.a||''}" placeholder="金額" data-c="ea" data-i="${i}"><button class="btn ghost cb" data-calc="open" data-i="${i}" aria-label="計算機">🧮</button><button class="x" data-a="re" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ae">＋ 新增花費</button> <button class="btn ghost" data-calc="new">🧮 計算機</button></div><div class="total"><span>當日花費合計</span><span>${money(tot)}</span></div></div>`;
 }
 
 function period(){const [y,m]=D.ym.split('-'),last=new Date(+y,+m,0).getDate();return D.half==1?[D.ym+'-01',D.ym+'-15']:[D.ym+'-16',D.ym+'-'+String(last).padStart(2,'0')]}
@@ -173,6 +189,7 @@ document.addEventListener('click',ev=>{
  else if(a=='jump'){D.work=v}
  else if(a=='ai'){wk(D.work).items.push('')}
  else if(a=='ri'){wk(D.work).items.splice(i,1)}
+ else if(a=='wx'){const r=wk(D.work);r.weather=r.weather==v?'':v}
  else if(a=='ae'){wk(D.work).exp.push({n:'',a:0})}
  else if(a=='re'){wk(D.work).exp.splice(i,1)}
  else if(a=='rp'){wk(D.work).photos.splice(i,1)}
@@ -240,11 +257,11 @@ function exportXlsx(){
  s1.push(B(['合計','','','','',sum('base'),sum('bn'),sum('adv'),sum('net'),R.reduce((s,r)=>s+r.p1.net,0),R.reduce((s,r)=>s+r.p2.net,0)]));
  const s2=[B(['員工',...Array.from({length:n},(_,i)=>i+1),'合計'])];
  S.emp.forEach(e=>{let t=0;const c=Array.from({length:n},(_,i)=>{const s=g(ym+'-'+pd(i+1),e.id).s,v=s=='f'?1:s=='h'?.5:0;t+=v;return v});s2.push([e.n,...c,t])});
- const s3=[B(['日期','施工項目','施工人員','花費項目','金額'])];let ex=0;
+ const s3=[B(['日期','天氣','施工項目','施工人員','花費項目','金額'])];let ex=0;
  Object.keys(S.work).filter(d=>d>=a1&&d<=b2).sort().forEach(d=>{const r=S.work[d],it=r.items.filter(Boolean).join('、'),wr=r.workers.map(id=>S.emp.find(e=>e.id==id)?.n).filter(Boolean).join('、');
-  if(!r.exp.length&&!it&&!wr)return;
-  if(!r.exp.length)s3.push([d,it,wr]);else r.exp.forEach((x,i)=>{ex+=+x.a||0;s3.push([d,i?'':it,i?'':wr,x.n,+x.a||0])})});
- s3.push(B(['施工花費合計','','','',ex]));
+  if(!r.exp.length&&!it&&!wr&&!r.weather)return;
+  if(!r.exp.length)s3.push([d,r.weather||'',it,wr]);else r.exp.forEach((x,i)=>{ex+=+x.a||0;s3.push([d,i?'':(r.weather||''),i?'':it,i?'':wr,x.n,+x.a||0])})});
+ s3.push(B(['施工花費合計','','','','',ex]));
  s1.push([],B(['當月總支出']),['薪資合計',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]));
  const s4=[[{v:ym+' 當月總支出',b:1}],[],['薪資合計（日薪＋月薪）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
  const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['施工花費',s3],['當月總支出',s4]])),a=document.createElement('a');
@@ -286,11 +303,12 @@ document.addEventListener('click',ev=>{
  if(!t){if(ev.target.id=='calc'){C.i=-1;drawCalc()}return}
  const a=t.dataset.calc;
  if(a=='open'){const i=+t.dataset.i,x=wk(D.work).exp[i];C.i=i;C.e=x&&x.a?String(x.a):'';drawCalc()}
+ else if(a=='new'){C.i=wk(D.work).exp.length;C.e='';drawCalc()}
  else if(a=='close'){C.i=-1;drawCalc()}
  else if(a=='k')calcKey(t.dataset.k);
  else if(a=='eq'){const v=calcTry();if(v!=null){C.e=String(Math.round(v*100)/100);drawCalc()}}
  else if(a=='ok'){const v=calcTry();if(v==null){alert('算式不完整，請檢查後再試');return}
-  wk(D.work).exp[C.i].a=Math.round(v);C.i=-1;drawCalc();save();render()}
+  const ex=wk(D.work).exp;if(!ex[C.i])ex.push({n:'',a:0});ex[C.i].a=Math.round(v);C.i=-1;drawCalc();save();render()}
 });
 addEventListener('keydown',e=>{if(e.key=='Escape'&&C.i>=0){C.i=-1;drawCalc()}});
 
