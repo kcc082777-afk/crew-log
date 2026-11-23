@@ -185,7 +185,7 @@ function wxChart(){
    tip=(am||pm)?`${mi+1}/${di+1}　上午${am||'－'}　下午${pm||'－'}`:'';
    return `<td><i class="wc" style="--a:${col(am)};--b:${col(pm)}" title="${tip}"></i></td>`}).join('')}</tr>`}).join('');
  return `<h2>晴雨表</h2><div class="date"><button class="btn ghost" data-a="wy" data-v="-1" aria-label="前一年">‹</button><div style="flex:1;text-align:center;font-weight:700;align-self:center">${y} 年</div><button class="btn ghost" data-a="wy" data-v="1" aria-label="後一年">›</button></div>
- <button class="btn" data-a="xw" style="margin:10px 0">匯出晴雨表 Excel（${y} 年）</button>
+ <button class="btn" data-a="xw" style="margin:10px 0">匯出晴雨表 Word（${y} 年）</button>
  <p class="lbl">範例：${leg('晴天','var(--wxs)')}${leg('雨天','var(--wxr)')}${leg('颱風','var(--wxt)')}<br>每格上半圓＝上午、下半圓＝下午（依施工紀錄的天氣自動填色）</p>
  <div class="scroll"><table class="wt"><thead><tr><th>日期</th>${Array.from({length:31},(_,i)=>`<th>${i+1}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`}
 
@@ -224,7 +224,7 @@ document.addEventListener('click',ev=>{
  else if(a=='rp'){wk(D.work).photos.splice(i,1)}
  else if(a=='xl'){exportXlsx();return}
  else if(a=='xa'){exportAtt();return}
- else if(a=='xw'){exportWx();return}
+ else if(a=='xw'){exportWord();return}
  else if(a=='half'){D.half=+v}
  else if(a=='ae2'){S.emp.push({id:uid(),n:'員工'+(S.emp.length+1),t:'d',w:0})}
  else if(a=='de'){if(!confirm('刪除這位員工？其歷史資料會一併不再顯示。'))return;S.emp=S.emp.filter(e=>e.id!=id)}
@@ -259,14 +259,14 @@ function addPhotos(files){
  Promise.all(files.map(f=>new Promise(res=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,720/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.6))};im.onerror=()=>res(null);im.src=fr.result};fr.readAsDataURL(f)}))).then(a=>{r.photos.push(...a.filter(Boolean));save();render()});
 }
 function crc(b){const t=crc.t||(crc.t=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));let r=-1;for(const x of b)r=t[(r^x)&255]^(r>>>8);return(r^-1)>>>0}
-function zip(fs){const e=new TextEncoder(),parts=[],cd=[];let off=0;
- for(const f of fs){const n=e.encode(f.n),d=e.encode(f.d),c=crc(d);
+function zip(fs,ty){const e=new TextEncoder(),parts=[],cd=[];let off=0;
+ for(const f of fs){const n=e.encode(f.n),d=typeof f.d=='string'?e.encode(f.d):f.d,c=crc(d);
   const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(12,0x21,true);h.setUint32(14,c,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,n.length,true);
   parts.push(new Uint8Array(h.buffer),n,d);
   const q=new DataView(new ArrayBuffer(46));q.setUint32(0,0x02014b50,true);q.setUint16(4,20,true);q.setUint16(6,20,true);q.setUint16(8,0x0800,true);q.setUint16(14,0x21,true);q.setUint32(16,c,true);q.setUint32(20,d.length,true);q.setUint32(24,d.length,true);q.setUint16(28,n.length,true);q.setUint32(42,off,true);
   cd.push(new Uint8Array(q.buffer),n);off+=30+n.length+d.length}
  const cs=cd.reduce((s,x)=>s+x.length,0),z=new DataView(new ArrayBuffer(22));z.setUint32(0,0x06054b50,true);z.setUint16(8,fs.length,true);z.setUint16(10,fs.length,true);z.setUint32(12,cs,true);z.setUint32(16,off,true);
- return new Blob([...parts,...cd,new Uint8Array(z.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+ return new Blob([...parts,...cd,new Uint8Array(z.buffer)],{type:ty||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
 const xe=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const col=i=>{let s='';for(i++;i>0;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s};
 function sheetXml(rows,wc){return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+(wc?'<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>':'')+'<cols>'+(wc||'<col min="1" max="40" width="14" customWidth="1"/>')+'</cols><sheetData>'+rows.map((r,i)=>`<row r="${i+1}">`+r.map((c,j)=>{if(c==null)return'';const o=typeof c=='object'?c:{v:c};if(o.v==null||(o.v===''&&o.s==null))return'';const si=o.s!=null?o.s:o.b?1:0,s=si?` s="${si}"`:'',ref=col(j)+(i+1);if(o.v==='')return `<c r="${ref}"${s}/>`;return typeof o.v=='number'?`<c r="${ref}"${s}><v>${o.v}</v></c>`:`<c r="${ref}"${s} t="inlineStr"><is><t>${xe(o.v)}</t></is></c>`}).join('')+'</row>').join('')+'</sheetData>'+(wc?'<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>':'')+'</worksheet>'}
@@ -306,13 +306,48 @@ function exportAtt(){
  S.emp.forEach(e=>{let t=0;const c=days.map((i,di)=>{const q=g(k(i),e.id).s,v=q=='f'?1:q=='h'?.5:0;t+=v;cnt[di]+=v;return {v:v||'',s:11}});rows.push([{v:e.n,s:11},...c,{v:t,s:11}])});
  rows.push([{v:'每日出勤合計',s:9},...cnt.map(v=>({v:v||'',s:9})),{v:cnt.reduce((a,b)=>a+b,0),s:9}]);
  dlx([['出勤紀錄 '+hm,rows,`<col min="1" max="1" width="14" customWidth="1"/><col min="2" max="${n+1}" width="5" customWidth="1"/><col min="${n+2}" max="${n+2}" width="10" customWidth="1"/>`]],'出勤紀錄_'+hm+'.xlsx')}
-function exportWx(){
- const y=D.wy||+D.hm.slice(0,4),P=x=>String(x).padStart(2,'0'),MN=['一','二','三','四','五','六','七','八','九','十','十一','十二'],ST={'晴天':[3,'晴'],'雨天':[4,'雨'],'颱風':[5,'颱']},
- cell=(w,ok)=>!ok?{v:'',s:8}:w?(ST[w]?{v:ST[w][1],s:ST[w][0]}:{v:w[0],s:6}):{v:'',s:7};
- const rows=[[{v:y+' 年晴雨表',b:1}],[{v:'範例：',b:1},{v:'晴天',s:3},{v:'雨天',s:4},{v:'颱風',s:5},'　上排＝上午、下排＝下午（資料取自施工紀錄的天氣）'],[],[{v:'月份',s:9},{v:'時段',s:9},...Array.from({length:31},(_,i)=>({v:i+1,s:9}))]];
- MN.forEach((nm,mi)=>{const dim=new Date(y,mi+1,0).getDate();
-  [['上午','weather'],['下午','weatherPm']].forEach(([lb,f],r)=>rows.push([{v:r?'':nm+'月',s:9},{v:lb,s:9},...Array.from({length:31},(_,di)=>cell((S.work[`${y}-${P(mi+1)}-${P(di+1)}`]||{})[f],di+1<=dim))]))});
- dlx([['晴雨表 '+y,rows,'<col min="1" max="1" width="9" customWidth="1"/><col min="2" max="2" width="7" customWidth="1"/><col min="3" max="33" width="5" customWidth="1"/>']],'晴雨表_'+y+'.xlsx')}
+function wxCanvas(y){
+ const W=2800,LC=100,DC=(W-LC)/31,HH=80,RH=84,H=HH+12*RH+100,F="'Times New Roman','Times','DFKai-SB','標楷體','BiauKai','Kaiti TC','KaiTi',serif",
+ C={'晴天':'#d6453a','雨天':'#2f9461','颱風':'#3f6fb8'},MN=['一','二','三','四','五','六','七','八','九','十','十一','十二'],P=n=>String(n).padStart(2,'0'),
+ cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+ x.fillStyle='#fff';x.fillRect(0,0,W,H);x.textAlign='center';x.textBaseline='middle';
+ const circ=(cx,cy,r,a,b)=>{x.save();x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.clip();
+  if(a){x.fillStyle=a;x.fillRect(cx-r,cy-r,2*r,r)}if(b){x.fillStyle=b;x.fillRect(cx-r,cy,2*r,r)}x.restore();
+  x.strokeStyle='#222';x.lineWidth=3;x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.stroke();
+  x.lineWidth=2;x.setLineDash([7,5]);x.beginPath();x.moveTo(cx-r,cy);x.lineTo(cx+r,cy);x.stroke();x.setLineDash([])};
+ for(let m=0;m<12;m++){const dim=new Date(y,m+1,0).getDate();
+  for(let d=0;d<31;d++){const px=LC+d*DC,py=HH+m*RH;
+   if(d+1>dim){x.fillStyle='#e6e6e6';x.fillRect(px,py,DC,RH);continue}
+   const r=S.work[`${y}-${P(m+1)}-${P(d+1)}`]||{};
+   circ(px+DC/2,py+RH/2,Math.min(DC,RH)/2-9,C[r.weather]||(r.weather?'#9aa0a6':''),C[r.weatherPm]||(r.weatherPm?'#9aa0a6':''))}}
+ x.strokeStyle='#222';x.lineWidth=2;
+ for(let i=0;i<=31;i++){x.beginPath();x.moveTo(LC+i*DC,0);x.lineTo(LC+i*DC,HH+12*RH);x.stroke()}
+ for(let i=0;i<=12;i++){x.beginPath();x.moveTo(0,HH+i*RH);x.lineTo(W,HH+i*RH);x.stroke()}
+ x.lineWidth=7;x.strokeRect(3.5,3.5,W-7,HH+12*RH-7);
+ x.fillStyle='#111';x.font=`bold 30px ${F}`;x.fillText('日期',LC/2,HH/2);
+ x.font=`bold 42px ${F}`;for(let i=0;i<31;i++)x.fillText(i+1,LC+(i+.5)*DC,HH/2);
+ MN.forEach((nm,m)=>x.fillText(nm,LC/2,HH+(m+.5)*RH));
+ const ly=HH+12*RH+52;x.textAlign='left';x.font=`34px ${F}`;x.fillText('範例：',20,ly);let lx=170;
+ for(const k of ['晴天','雨天','颱風']){circ(lx+26,ly,26,C[k],C[k]);x.fillStyle='#111';x.fillText(k,lx+68,ly);lx+=240}
+ x.fillText('上半圓＝上午、下半圓＝下午',lx+20,ly);
+ return cv}
+async function exportWord(){
+ const y=D.wy||+D.hm.slice(0,4),cv=wxCanvas(y),png=new Uint8Array(await(await new Promise(r=>cv.toBlob(r,'image/png'))).arrayBuffer()),
+ cx=9777000,cy=Math.round(cx*cv.height/cv.width),H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+ W='http://schemas.openxmlformats.org/wordprocessingml/2006/main',RL='http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+ rf='<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="標楷體"/>',
+ para=(t,sz,b)=>`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="120"/></w:pPr><w:r><w:rPr>${rf}${b?'<w:b/>':''}<w:sz w:val="${sz}"/></w:rPr><w:t>${xe(t)}</w:t></w:r></w:p>`,
+ doc=H+`<w:document xmlns:w="${W}" xmlns:r="${RL}" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>`+para(y+' 年晴雨表',40,1)
+ +`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="120"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="1" name="晴雨表" descr="${y} 年晴雨表"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="chart.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`
+ +para('晴天＝紅色、雨天＝綠色、颱風＝藍色；資料取自施工紀錄的當日天氣。',20,0)
+ +'<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="360" w:footer="360" w:gutter="0"/></w:sectPr></w:body></w:document>',
+ blob=zip([
+  {n:'[Content_Types].xml',d:H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'},
+  {n:'_rels/.rels',d:H+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="'+RL+'/officeDocument" Target="word/document.xml"/></Relationships>'},
+  {n:'word/document.xml',d:doc},
+  {n:'word/_rels/document.xml.rels',d:H+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="'+RL+'/image" Target="media/chart.png"/></Relationships>'},
+  {n:'word/media/chart.png',d:png}],'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+ u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='晴雨表_'+y+'.docx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 /* 計算機 */
 const C={i:-1,e:''};
 function calcEval(src){
