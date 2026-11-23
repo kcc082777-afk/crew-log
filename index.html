@@ -63,11 +63,24 @@ nav button{flex:1;border:0;background:transparent;color:var(--mute);padding:12px
 nav button.on{color:var(--pri);font-weight:800;box-shadow:inset 0 3px 0 var(--hi)}
 :focus-visible{outline:2px solid var(--pri);outline-offset:2px}
 .empty{color:var(--mute);padding:10px 0}
+.cb{flex:none;padding:9px 10px;font-size:17px;line-height:1}
+#calc{position:fixed;inset:0;z-index:10;display:none;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center}
+#calc.on{display:flex}
+.cs{background:var(--card);width:100%;max-width:480px;border-radius:14px 14px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));border:1px solid var(--line)}
+.cd{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:8px 0 10px;text-align:right;min-height:78px}
+.cd .e{font-size:20px;word-break:break-all;min-height:30px}
+.cd .r{font-size:28px;font-weight:800;color:var(--pri);min-height:40px}
+.ck{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ck button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;min-height:54px;font-size:22px;cursor:pointer}
+.ck button.o{color:var(--pri);font-weight:800}
+.ck button.c{color:var(--bad)}
+.ck button.ok{grid-column:span 3;background:var(--pri);color:var(--onpri);border-color:var(--pri);font-size:18px;font-weight:700}
 </style>
 </head>
 <body>
 <main id="app"></main>
 <nav id="nav"></nav>
+<div id="calc" role="dialog" aria-modal="true" aria-label="計算機"></div>
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -109,7 +122,7 @@ function vWork(){
  <div class="card"><b>施工人員</b><div style="margin-top:6px">${S.emp.map(e=>`<label class="chip" style="padding:6px 12px"><input type="checkbox" style="margin-right:6px" ${r.workers.includes(e.id)?'checked':''} data-c="wkr" data-id="${e.id}">${esc(e.n)}</label>`).join('')||'<span class="empty">尚無員工</span>'}</div></div>
  <div class="card"><b>相片</b><div class="ph">${r.photos.map((p,i)=>`<div><img src="${p}" alt="施工相片"><button class="x" data-a="rp" data-i="${i}" aria-label="刪除相片">×</button></div>`).join('')}</div><div style="margin-top:8px"><input type="file" accept="image/*" multiple data-c="photo"></div></div>
  <div class="card"><b>施工記事</b><textarea data-c="note" placeholder="備註">${esc(r.note)}</textarea></div>
- <div class="card"><b>當日花費</b>${r.exp.map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" value="${esc(x.n)}" placeholder="項目" data-c="en" data-i="${i}"><input type="number" inputmode="numeric" value="${x.a||''}" placeholder="金額" data-c="ea" data-i="${i}"><button class="x" data-a="re" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ae">＋ 新增花費</button></div><div class="total"><span>當日花費合計</span><span>${money(tot)}</span></div></div>`;
+ <div class="card"><b>當日花費</b>${r.exp.map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" value="${esc(x.n)}" placeholder="項目" data-c="en" data-i="${i}"><input type="number" inputmode="numeric" value="${x.a||''}" placeholder="金額" data-c="ea" data-i="${i}"><button class="btn ghost cb" data-calc="open" data-i="${i}" aria-label="計算機">🧮</button><button class="x" data-a="re" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ae">＋ 新增花費</button></div><div class="total"><span>當日花費合計</span><span>${money(tot)}</span></div></div>`;
 }
 
 function period(){const [y,m]=D.ym.split('-'),last=new Date(+y,+m,0).getDate();return D.half==1?[D.ym+'-01',D.ym+'-15']:[D.ym+'-16',D.ym+'-'+String(last).padStart(2,'0')]}
@@ -236,6 +249,51 @@ function exportXlsx(){
  const s4=[[{v:ym+' 當月總支出',b:1}],[],['薪資合計（日薪＋月薪）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
  const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['施工花費',s3],['當月總支出',s4]])),a=document.createElement('a');
  a.href=u;a.download='工班記事_'+ym+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+/* 計算機 */
+const C={i:-1,e:''};
+function calcEval(src){
+ let s=src.replace(/[^\d.+\-*\/()]/g,''),open=(s.match(/\(/g)||[]).length-(s.match(/\)/g)||[]).length;
+ while(open-- >0)s+=')';
+ let p=0;
+ const expr=()=>{let v=term();while(s[p]=='+'||s[p]=='-'){const o=s[p++],r=term();v=o=='+'?v+r:v-r}return v};
+ const term=()=>{let v=fac();while(s[p]=='*'||s[p]=='/'){const o=s[p++],r=fac();v=o=='*'?v*r:v/r}return v};
+ const fac=()=>{if(s[p]=='-'){p++;return -fac()}
+  if(s[p]=='('){p++;const v=expr();if(s[p]!=')')throw 0;p++;return v}
+  const m=/^(\d+\.?\d*|\.\d+)/.exec(s.slice(p));if(!m)throw 0;p+=m[0].length;return parseFloat(m[0])};
+ const v=expr();if(p!=s.length||!isFinite(v))throw 0;return v}
+function calcTry(){try{return calcEval(C.e)}catch(e){return null}}
+const calcShow=e=>e.replace(/\*/g,'×').replace(/\//g,'÷').replace(/-/g,'−');
+function drawCalc(){
+ const el=$('#calc');
+ if(C.i<0){el.classList.remove('on');el.innerHTML='';return}
+ const x=wk(D.work).exp[C.i]||{n:''},v=calcTry(),
+ K=[['C','c','C'],['⌫','','B'],['(','o','('],[')','o',')'],['7','','7'],['8','','8'],['9','','9'],['÷','o','/'],['4','','4'],['5','','5'],['6','','6'],['×','o','*'],['1','','1'],['2','','2'],['3','','3'],['−','o','-'],['0','','0'],['00','','00'],['.','','.'],['+','o','+']];
+ el.innerHTML=`<div class="cs"><div class="row"><b>計算機${x.n?'：'+esc(x.n):''}</b><button class="x" data-calc="close" aria-label="關閉">×</button></div>
+ <div class="cd"><div class="e">${calcShow(esc(C.e))||'0'}</div><div class="r">${v==null?'':'= '+(Math.round(v*100)/100).toLocaleString()}</div></div>
+ <div class="ck">${K.map(([t,c,k])=>`<button class="${c}" data-calc="k" data-k="${k}">${t}</button>`).join('')}<button class="o" data-calc="eq">=</button><button class="ok" data-calc="ok">帶入金額</button></div></div>`;
+ el.classList.add('on')}
+function calcKey(k){
+ if(k=='C')C.e='';
+ else if(k=='B')C.e=C.e.slice(0,-1);
+ else{
+  const last=C.e.slice(-1),isOp=c=>'+-*/'.includes(c);
+  if(isOp(k)&&isOp(last))C.e=C.e.slice(0,-1)+k;
+  else if(isOp(k)&&(C.e===''||last=='(')&&k!='-')return;
+  else C.e+=k}
+ drawCalc()}
+document.addEventListener('click',ev=>{
+ const t=ev.target.closest('[data-calc]');
+ if(!t){if(ev.target.id=='calc'){C.i=-1;drawCalc()}return}
+ const a=t.dataset.calc;
+ if(a=='open'){const i=+t.dataset.i,x=wk(D.work).exp[i];C.i=i;C.e=x&&x.a?String(x.a):'';drawCalc()}
+ else if(a=='close'){C.i=-1;drawCalc()}
+ else if(a=='k')calcKey(t.dataset.k);
+ else if(a=='eq'){const v=calcTry();if(v!=null){C.e=String(Math.round(v*100)/100);drawCalc()}}
+ else if(a=='ok'){const v=calcTry();if(v==null){alert('算式不完整，請檢查後再試');return}
+  wk(D.work).exp[C.i].a=Math.round(v);C.i=-1;drawCalc();save();render()}
+});
+addEventListener('keydown',e=>{if(e.key=='Escape'&&C.i>=0){C.i=-1;drawCalc()}});
+
 render();
 if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 if(navigator.storage&&navigator.storage.persist){navigator.storage.persist().catch(()=>{})}
