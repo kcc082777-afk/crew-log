@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>工班記事</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e5a63">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="工班記事">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<style>
+:root{--bg:#eceae4;--card:#fbfaf7;--ink:#1d2427;--mute:#6b7478;--line:#d5d2c9;--pri:#0e5a63;--onpri:#fff;--hi:#e8a900;--ok:#1f7a4d;--half:#b07a00;--no:#8a8f92;--bad:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14191b;--card:#1d2427;--ink:#e8e6e0;--mute:#8f989c;--line:#323c40;--pri:#4cb3bf;--onpri:#0b1c1f;--hi:#f2b705;--ok:#4fc48a;--half:#e8a900;--no:#7b8589;--bad:#ff8a80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14191b;--card:#1d2427;--ink:#e8e6e0;--mute:#8f989c;--line:#323c40;--pri:#4cb3bf;--onpri:#0b1c1f;--hi:#f2b705;--ok:#4fc48a;--half:#e8a900;--no:#7b8589;--bad:#ff8a80;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;padding-bottom:84px}
+main{max-width:720px;margin:0 auto;padding:14px}
+h1{font-size:22px;margin:4px 0 12px;font-weight:800;letter-spacing:.02em}
+h2{font-size:17px;margin:18px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin:0 0 10px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--mute);padding:9px 14px;font:inherit;font-size:15px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border:0}
+.seg .on.f{background:var(--ok);color:#fff}.seg .on.h{background:var(--hi);color:#1d2427}.seg .on.n{background:var(--no);color:#fff}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+input[type=number]{width:96px}
+textarea{width:100%;min-height:64px}
+button{font:inherit}
+.btn{background:var(--pri);color:var(--onpri);border:0;border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:600}
+.btn.ghost{background:transparent;color:var(--pri);border:1px solid var(--pri)}
+.x{background:transparent;border:0;color:var(--bad);cursor:pointer;font-size:18px;padding:4px 8px}
+.chip{display:inline-flex;align-items:center;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 10px;margin:4px 6px 0 0;font-size:14px}
+.chip .x{font-size:15px;padding:0 6px}
+details summary{cursor:pointer;color:var(--pri);font-weight:600;margin-top:8px}
+.bf{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.bf input[name=n]{width:110px}
+.lbl{color:var(--mute);font-size:14px}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:8px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+tfoot td{font-weight:800}
+.hs td,.hs th{text-align:center;padding:6px 5px;min-width:26px}
+.hs td:first-child,.hs th:first-child{text-align:left;min-width:64px}
+.f{color:var(--ok)}.h{color:var(--half)}.n{color:var(--no)}
+.neg{color:var(--bad)}
+.date{display:flex;gap:6px;align-items:center;margin-bottom:12px}
+.date input{flex:1}
+.ph{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.ph div{position:relative}.ph img{width:96px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.ph .x{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:24px;height:24px;padding:0;line-height:24px}
+.total{display:flex;justify-content:space-between;font-weight:800;font-size:18px;border-top:2px solid var(--ink);padding-top:8px;margin-top:8px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav button{flex:1;border:0;background:transparent;color:var(--mute);padding:12px 2px;font-size:15px;cursor:pointer}
+nav button.on{color:var(--pri);font-weight:800;box-shadow:inset 0 3px 0 var(--hi)}
+:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+.empty{color:var(--mute);padding:10px 0}.wd{margin:-6px 0 12px;text-align:center;font-weight:700;font-size:17px}.wd.red{color:var(--bad)}.wx{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.wx button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:9px 12px;font-size:16px;cursor:pointer}.wx button.on{background:var(--pri);color:var(--onpri);border-color:var(--pri);font-weight:700}
+.cb{flex:none;padding:9px 10px;font-size:17px;line-height:1}
+#calc{position:fixed;inset:0;z-index:10;display:none;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center}
+#calc.on{display:flex}
+.cs{background:var(--card);width:100%;max-width:480px;border-radius:14px 14px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));border:1px solid var(--line)}
+.cd{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:8px 0 10px;text-align:right;min-height:78px}
+.cd .e{font-size:20px;word-break:break-all;min-height:30px}
+.cd .r{font-size:28px;font-weight:800;color:var(--pri);min-height:40px}
+.ck{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ck button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;min-height:54px;font-size:22px;cursor:pointer}
+.ck button.o{color:var(--pri);font-weight:800}
+.ck button.c{color:var(--bad)}
+.ck button.ok{grid-column:span 3;background:var(--pri);color:var(--onpri);border-color:var(--pri);font-size:18px;font-weight:700}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav id="nav"></nav>
+<div id="calc" role="dialog" aria-modal="true" aria-label="計算機"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,8);
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today=()=>iso(new Date());
+const money=n=>(n<0?'-':'')+'$'+Math.abs(Math.round(n)).toLocaleString();
+const shift=(d,n)=>{const x=new Date(d+'T00:00:00');x.setDate(x.getDate()+n);return iso(x)};
+function load(){try{const s=JSON.parse(localStorage.getItem('crewlog')||'null');if(s)return s}catch(e){}
+ return{emp:Array.from({length:10},(_,i)=>({id:uid(),n:'員工'+(i+1),w:0})),presets:[{n:'噴砂',a:300},{n:'噴漆',a:300}],att:{},work:{}}}
+let S=load();
+function save(){try{localStorage.setItem('crewlog',JSON.stringify(S))}catch(e){alert('儲存空間已滿，請刪除部分相片')}}
+const t0=today();
+const D={tab:'att',att:t0,work:t0,ym:t0.slice(0,7),half:+t0.slice(8)>15?2:1,hm:t0.slice(0,7),open:''};
+const g=(d,id)=>S.att[d]?.[id]||{s:'n',b:[],a:0};
+const w=(d,id)=>((S.att[d]??={})[id]??={s:'n',b:[],a:0});
+const wk=d=>S.work[d]??={items:[],workers:[],exp:[],note:'',photos:[]};
+const TABS=[['att','出勤'],['work','施工'],['pay','結算'],['his','歷史'],['set','設置']];
+
+/* 台灣假日（行政院人事行政總處辦公日曆表，2026–2027；皆只補假不補班） */
+const HOL={
+'2026-01-01':'元旦','2026-02-15':'小年夜','2026-02-16':'除夕','2026-02-17':'春節','2026-02-18':'春節','2026-02-19':'春節','2026-02-20':'春節','2026-02-21':'春節',
+'2026-02-27':'和平紀念日補假','2026-02-28':'和平紀念日','2026-04-03':'兒童節補假','2026-04-04':'兒童節','2026-04-05':'清明節','2026-04-06':'清明節補假',
+'2026-05-01':'勞動節','2026-06-19':'端午節','2026-09-25':'中秋節','2026-09-28':'教師節','2026-10-09':'國慶日補假','2026-10-10':'國慶日',
+'2026-10-25':'光復節','2026-10-26':'光復節補假','2026-12-25':'行憲紀念日',
+'2027-01-01':'元旦','2027-02-04':'小年夜','2027-02-05':'除夕','2027-02-06':'春節','2027-02-07':'春節','2027-02-08':'春節','2027-02-09':'春節補假','2027-02-10':'春節補假',
+'2027-02-28':'和平紀念日','2027-03-01':'和平紀念日補假','2027-04-04':'兒童節','2027-04-05':'清明節','2027-04-06':'兒童節補假','2027-04-30':'勞動節補假','2027-05-01':'勞動節',
+'2027-06-09':'端午節','2027-09-15':'中秋節','2027-09-28':'教師節','2027-10-10':'國慶日','2027-10-11':'國慶日補假','2027-10-25':'光復節',
+'2027-12-24':'行憲紀念日補假','2027-12-25':'行憲紀念日','2027-12-31':'元旦補假'};
+const WX=[['晴天','☀️'],['多雲','⛅'],['陰天','☁️'],['雨天','🌧️'],['大雨','⛈️'],['颱風','🌀']];
+function wdLine(d){
+ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d||'');if(!m)return'';
+ const wd=new Date(+m[1],+m[2]-1,+m[3]).getDay(),nm=HOL[d],red=wd==0||wd==6||!!nm;
+ return `<div class="wd${red?' red':''}">星期${'日一二三四五六'[wd]}${nm?'　'+nm:''}</div>`}
+function dateBar(key){return `<div class="date"><button class="btn ghost" data-a="dd" data-k="${key}" data-v="-1">‹</button><input type="date" value="${D[key]}" data-c="date" data-k="${key}"><button class="btn ghost" data-a="dd" data-k="${key}" data-v="1">›</button></div>${wdLine(D[key])}`}
+
+function vAtt(){
+ const d=D.att;
+ return dateBar('att')+(S.emp.length?S.emp.map(e=>{const r=g(d,e.id);
+ return `<div class="card"><div class="row"><b>${esc(e.n)}</b><div class="seg">${[['f','出勤'],['h','半天'],['n','未出勤']].map(([k,t])=>`<button class="${r.s==k?'on '+k:''}" data-a="st" data-id="${e.id}" data-v="${k}">${t}</button>`).join('')}</div></div>
+ <div>${r.b.map((b,i)=>`<span class="chip">${esc(b.n)} ${money(b.a)}<button class="x" data-a="rb" data-id="${e.id}" data-i="${i}" aria-label="移除">×</button></span>`).join('')}</div>
+ <details ${D.open==e.id?'open':''}><summary>加給 / 借支</summary>
+ <div class="bf" data-id="${e.id}"><select data-c="fill"><option value="">選項目</option>${S.presets.map((p,i)=>`<option value="${i}">${esc(p.n)} ${p.a}</option>`).join('')}</select><input name="n" placeholder="項目"><input name="a" type="number" inputmode="numeric" placeholder="金額"><button class="btn" data-a="ab">加入</button></div>
+ <div class="row" style="margin-top:8px;justify-content:flex-start"><span class="lbl">今日借支</span><input type="number" inputmode="numeric" value="${r.a||''}" placeholder="0" data-c="adv" data-id="${e.id}"></div></details></div>`}).join(''):'<p class="empty">請先到「設置」新增員工</p>');
+}
+
+function vWork(){
+ const d=D.work,r=S.work[d]||{items:[],workers:[],exp:[],note:'',photos:[],weather:''};
+ const tot=r.exp.reduce((s,x)=>s+(+x.a||0),0);
+ const dates=Object.keys(S.work).filter(k=>{const x=S.work[k];return x.items.length||x.photos.length||x.exp.length||x.note||x.weather}).sort().reverse();
+ return dateBar('work')+
+ (dates.length?`<div class="lbl">有紀錄的日期</div><div style="margin-bottom:10px">${dates.slice(0,12).map(k=>`<button class="chip" data-a="jump" data-v="${k}">${k.slice(5)}</button>`).join('')}</div>`:'')+
+ `<div class="card"><b>當日天氣</b><div class="wx">${WX.map(([k,i])=>`<button class="${r.weather==k?'on':''}" data-a="wx" data-v="${k}" aria-pressed="${r.weather==k}">${i} ${k}</button>`).join('')}</div></div>
+ `+`<div class="card"><b>施工項目</b>${r.items.map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" value="${esc(x)}" data-c="item" data-i="${i}"><button class="x" data-a="ri" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ai">＋ 新增項目</button></div></div>
+ <div class="card"><b>施工人員</b><div style="margin-top:6px">${S.emp.map(e=>`<label class="chip" style="padding:6px 12px"><input type="checkbox" style="margin-right:6px" ${r.workers.includes(e.id)?'checked':''} data-c="wkr" data-id="${e.id}">${esc(e.n)}</label>`).join('')||'<span class="empty">尚無員工</span>'}</div></div>
+ <div class="card"><b>相片</b><div class="ph">${r.photos.map((p,i)=>`<div><img src="${p}" alt="施工相片"><button class="x" data-a="rp" data-i="${i}" aria-label="刪除相片">×</button></div>`).join('')}</div><div style="margin-top:8px"><input type="file" accept="image/*" multiple data-c="photo"></div></div>
+ <div class="card"><b>施工記事</b><textarea data-c="note" placeholder="備註">${esc(r.note)}</textarea></div>
+ <div class="card"><b>當日花費</b>${r.exp.map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" value="${esc(x.n)}" placeholder="項目" data-c="en" data-i="${i}"><input type="number" inputmode="numeric" value="${x.a||''}" placeholder="金額" data-c="ea" data-i="${i}"><button class="btn ghost cb" data-calc="open" data-i="${i}" aria-label="計算機">🧮</button><button class="x" data-a="re" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ae">＋ 新增花費</button> <button class="btn ghost" data-calc="new">🧮 計算機</button></div><div class="total"><span>當日花費合計</span><span>${money(tot)}</span></div></div>`;
+}
+
+function period(){const [y,m]=D.ym.split('-'),last=new Date(+y,+m,0).getDate();return D.half==1?[D.ym+'-01',D.ym+'-15']:[D.ym+'-16',D.ym+'-'+String(last).padStart(2,'0')]}
+function calc(e,a,b,k=1){let f=0,h=0,bn=0,adv=0;for(const d in S.att){if(d<a||d>b)continue;const r=S.att[d][e.id];if(!r)continue;if(r.s=='f')f++;if(r.s=='h')h++;bn+=r.b.reduce((s,x)=>s+(+x.a||0),0);adv+=+r.a||0}
+ const base=e.t=='m'?e.w*k/2:(f+h/2)*e.w;return{f,h,base,bn,adv,net:base+bn-adv}}
+function vPay(){
+ const [a,b]=period(),rows=S.emp.map(e=>({e,...calc(e,a,b)}));
+ const T=rows.reduce((s,r)=>({base:s.base+r.base,bn:s.bn+r.bn,adv:s.adv+r.adv,net:s.net+r.net}),{base:0,bn:0,adv:0,net:0});
+ return `<div class="date"><input type="month" value="${D.ym}" data-c="ym"><div class="seg"><button class="${D.half==1?'on f':''}" data-a="half" data-v="1">1–15日</button><button class="${D.half==2?'on f':''}" data-a="half" data-v="2">16日–月底</button></div></div>
+ <button class="btn" data-a="xl" style="margin-bottom:10px">匯出 Excel（${D.ym} 整月）</button><p class="lbl">結算區間 ${a} 至 ${b}。實領 = 薪資 + 加給 − 借支。</p>
+ <div class="scroll"><table><thead><tr><th>員工</th><th>出勤</th><th>半天</th><th>薪資</th><th>加給</th><th>借支</th><th>實領</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.e.n)}${r.e.t=='m'?' <span class="lbl">月薪</span>':''}</td><td>${r.f}</td><td>${r.h}</td><td>${money(r.base)}</td><td>${money(r.bn)}</td><td>${money(r.adv)}</td><td class="${r.net<0?'neg':''}"><b>${money(r.net)}</b></td></tr>`).join('')}</tbody><tfoot><tr><td>合計</td><td></td><td></td><td>${money(T.base)}</td><td>${money(T.bn)}</td><td>${money(T.adv)}</td><td>${money(T.net)}</td></tr></tfoot></table></div>${vSum()}`;
+}
+
+function vSum(){const a=D.ym+'-01',b=D.ym+'-31';let base=0,bn=0,adv=0,ex=0;S.emp.forEach(e=>{const c=calc(e,a,b,2);base+=c.base;bn+=c.bn;adv+=c.adv});for(const d in S.work)if(d>=a&&d<=b)ex+=S.work[d].exp.reduce((s,x)=>s+(+x.a||0),0);
+ const L=(t,v,c)=>`<div class="row" style="margin-top:6px"><span>${t}</span><span${c||''}>${money(v)}</span></div>`;
+ return `<h2>${D.ym} 整月</h2><div class="card">${L('薪資合計（日薪＋月薪）',base)}${L('加給合計',bn)}${L('施工花費合計',ex)}<div class="total"><span>當月總支出</span><span>${money(base+bn+ex)}</span></div><p class="lbl" style="margin:8px 0 0">借支 ${money(adv)} 已從實領扣除，不重複計入總支出。</p></div>`}
+function vHis(){
+ const [y,m]=D.hm.split('-'),n=new Date(+y,+m,0).getDate(),days=Array.from({length:n},(_,i)=>i+1);
+ const key=i=>D.hm+'-'+String(i).padStart(2,'0');
+ return `<div class="date"><input type="month" value="${D.hm}" data-c="hm"></div><p class="lbl"><span class="f">●</span> 出勤　<span class="h">◐</span> 半天　<span class="n">·</span> 未出勤</p>
+ <div class="scroll"><table class="hs"><thead><tr><th>員工</th>${days.map(i=>`<th>${i}</th>`).join('')}<th>合計</th></tr></thead><tbody>${S.emp.map(e=>{let f=0,h=0;const c=days.map(i=>{const s=g(key(i),e.id).s;if(s=='f'){f++;return'<td class="f">●</td>'}if(s=='h'){h++;return'<td class="h">◐</td>'}return'<td class="n">·</td>'}).join('');return `<tr><td>${esc(e.n)}</td>${c}<td>${f+h/2}</td></tr>`}).join('')}</tbody></table></div>`;
+}
+
+function vSet(){
+ return `<h2 style="margin-top:0">員工與日薪</h2><p class="lbl">目前 ${S.emp.length} 人，可繼續新增。日薪制：半天以日薪一半計算。月薪制：每期（1–15日、16日–月底）固定發月薪的一半，不隨出勤增減。</p>
+ ${S.emp.map(e=>`<div class="card row"><input style="flex:1;min-width:100px" value="${esc(e.n)}" data-c="en2" data-id="${e.id}" aria-label="姓名"><select data-c="et" data-id="${e.id}" aria-label="計薪方式"><option value="d" ${e.t!='m'?'selected':''}>日薪</option><option value="m" ${e.t=='m'?'selected':''}>月薪</option></select><input type="number" inputmode="numeric" value="${e.w||''}" placeholder="${e.t=='m'?'月薪金額':'日薪金額'}" data-c="ew" data-id="${e.id}" aria-label="薪資金額"><button class="x" data-a="de" data-id="${e.id}" aria-label="刪除員工">×</button></div>`).join('')}
+ <button class="btn" data-a="ae2">＋ 新增員工</button>
+ <h2>加給項目</h2>
+ ${S.presets.map((p,i)=>`<div class="card row" style="flex-wrap:nowrap"><input style="flex:1" value="${esc(p.n)}" data-c="pn" data-i="${i}"><input type="number" inputmode="numeric" value="${p.a}" data-c="pa" data-i="${i}"><button class="x" data-a="dp" data-i="${i}" aria-label="刪除項目">×</button></div>`).join('')}
+ <button class="btn ghost" data-a="ap">＋ 新增加給項目</button>
+ <p class="lbl" style="margin-top:18px">資料儲存在這部裝置的瀏覽器中。</p>`;
+}
+
+const V={att:vAtt,work:vWork,pay:vPay,his:vHis,set:vSet},TT={att:'出勤紀錄',work:'施工紀錄',pay:'結算',his:'歷史紀錄',set:'設置'};
+function render(){
+ $('#nav').innerHTML=TABS.map(([k,t])=>`<button class="${D.tab==k?'on':''}" data-a="tab" data-v="${k}">${t}</button>`).join('');
+ const y=window.scrollY;$('#app').innerHTML=`<h1>${TT[D.tab]}</h1>`+V[D.tab]();window.scrollTo(0,y);
+}
+
+document.addEventListener('click',ev=>{
+ const t=ev.target.closest('[data-a]');if(!t)return;
+ const a=t.dataset.a,id=t.dataset.id,v=t.dataset.v,i=+t.dataset.i;
+ if(a=='tab'){D.tab=v;window.scrollTo(0,0)}
+ else if(a=='dd'){D[t.dataset.k]=shift(D[t.dataset.k],+v)}
+ else if(a=='st'){w(D.att,id).s=v}
+ else if(a=='rb'){w(D.att,id).b.splice(i,1)}
+ else if(a=='ab'){const bf=t.closest('.bf'),n=bf.querySelector('[name=n]').value.trim(),am=+bf.querySelector('[name=a]').value;if(!n&&!am)return;w(D.att,bf.dataset.id).b.push({n:n||'加給',a:am});D.open=bf.dataset.id}
+ else if(a=='jump'){D.work=v}
+ else if(a=='ai'){wk(D.work).items.push('')}
+ else if(a=='ri'){wk(D.work).items.splice(i,1)}
+ else if(a=='wx'){const r=wk(D.work);r.weather=r.weather==v?'':v}
+ else if(a=='ae'){wk(D.work).exp.push({n:'',a:0})}
+ else if(a=='re'){wk(D.work).exp.splice(i,1)}
+ else if(a=='rp'){wk(D.work).photos.splice(i,1)}
+ else if(a=='xl'){exportXlsx();return}
+ else if(a=='half'){D.half=+v}
+ else if(a=='ae2'){S.emp.push({id:uid(),n:'員工'+(S.emp.length+1),t:'d',w:0})}
+ else if(a=='de'){if(!confirm('刪除這位員工？其歷史資料會一併不再顯示。'))return;S.emp=S.emp.filter(e=>e.id!=id)}
+ else if(a=='ap'){S.presets.push({n:'新項目',a:0})}
+ else if(a=='dp'){S.presets.splice(i,1)}
+ save();render();
+});
+
+document.addEventListener('change',ev=>{
+ const t=ev.target,c=t.dataset.c;if(!c)return;const id=t.dataset.id,i=+t.dataset.i;
+ if(c=='fill'){const p=S.presets[+t.value],bf=t.closest('.bf');if(p){bf.querySelector('[name=n]').value=p.n;bf.querySelector('[name=a]').value=p.a}return}
+ if(c=='photo'){addPhotos([...t.files]);return}
+ if(c=='date'){if(t.value)D[t.dataset.k]=t.value}
+ else if(c=='ym'){if(t.value)D.ym=t.value}
+ else if(c=='hm'){if(t.value)D.hm=t.value}
+ else if(c=='adv'){w(D.att,id).a=+t.value||0}
+ else if(c=='item'){wk(D.work).items[i]=t.value}
+ else if(c=='wkr'){const r=wk(D.work);r.workers=t.checked?[...r.workers,id]:r.workers.filter(x=>x!=id)}
+ else if(c=='note'){wk(D.work).note=t.value}
+ else if(c=='en'){wk(D.work).exp[i].n=t.value}
+ else if(c=='ea'){wk(D.work).exp[i].a=+t.value||0}
+ else if(c=='en2'){S.emp.find(e=>e.id==id).n=t.value}
+ else if(c=='et'){S.emp.find(e=>e.id==id).t=t.value}
+ else if(c=='ew'){S.emp.find(e=>e.id==id).w=+t.value||0}
+ else if(c=='pn'){S.presets[i].n=t.value}
+ else if(c=='pa'){S.presets[i].a=+t.value||0}
+ save();render();
+});
+
+function addPhotos(files){
+ const r=wk(D.work);
+ Promise.all(files.map(f=>new Promise(res=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,720/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.6))};im.onerror=()=>res(null);im.src=fr.result};fr.readAsDataURL(f)}))).then(a=>{r.photos.push(...a.filter(Boolean));save();render()});
+}
+function crc(b){const t=crc.t||(crc.t=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));let r=-1;for(const x of b)r=t[(r^x)&255]^(r>>>8);return(r^-1)>>>0}
+function zip(fs){const e=new TextEncoder(),parts=[],cd=[];let off=0;
+ for(const f of fs){const n=e.encode(f.n),d=e.encode(f.d),c=crc(d);
+  const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(12,0x21,true);h.setUint32(14,c,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,n.length,true);
+  parts.push(new Uint8Array(h.buffer),n,d);
+  const q=new DataView(new ArrayBuffer(46));q.setUint32(0,0x02014b50,true);q.setUint16(4,20,true);q.setUint16(6,20,true);q.setUint16(8,0x0800,true);q.setUint16(14,0x21,true);q.setUint32(16,c,true);q.setUint32(20,d.length,true);q.setUint32(24,d.length,true);q.setUint16(28,n.length,true);q.setUint32(42,off,true);
+  cd.push(new Uint8Array(q.buffer),n);off+=30+n.length+d.length}
+ const cs=cd.reduce((s,x)=>s+x.length,0),z=new DataView(new ArrayBuffer(22));z.setUint32(0,0x06054b50,true);z.setUint16(8,fs.length,true);z.setUint16(10,fs.length,true);z.setUint32(12,cs,true);z.setUint32(16,off,true);
+ return new Blob([...parts,...cd,new Uint8Array(z.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+const xe=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const col=i=>{let s='';for(i++;i>0;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s};
+function sheetXml(rows){return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="40" width="14" customWidth="1"/></cols><sheetData>'+rows.map((r,i)=>`<row r="${i+1}">`+r.map((c,j)=>{if(c==null||c==='')return'';const o=typeof c=='object'?c:{v:c},s=o.b?' s="1"':'',ref=col(j)+(i+1);return typeof o.v=='number'?`<c r="${ref}"${s}><v>${o.v}</v></c>`:`<c r="${ref}"${s} t="inlineStr"><is><t>${xe(o.v)}</t></is></c>`}).join('')+'</row>').join('')+'</sheetData></worksheet>'}
+function xlsx(sheets){const N='http://schemas.openxmlformats.org/',R=N+'officeDocument/2006/relationships',H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+ return zip([
+ {n:'[Content_Types].xml',d:H+'<Types xmlns="'+N+'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'</Types>'},
+ {n:'_rels/.rels',d:H+'<Relationships xmlns="'+N+'package/2006/relationships"><Relationship Id="rId1" Type="'+R+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+ {n:'xl/workbook.xml',d:H+'<workbook xmlns="'+N+'spreadsheetml/2006/main" xmlns:r="'+R+'"><sheets>'+sheets.map((s,i)=>`<sheet name="${xe(s[0])}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')+'</sheets></workbook>'},
+ {n:'xl/_rels/workbook.xml.rels',d:H+'<Relationships xmlns="'+N+'package/2006/relationships">'+sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${R}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')+`<Relationship Id="rId${sheets.length+1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`},
+ {n:'xl/styles.xml',d:H+'<styleSheet xmlns="'+N+'spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'},
+ ...sheets.map((s,i)=>({n:`xl/worksheets/sheet${i+1}.xml`,d:sheetXml(s[1])}))])}
+function exportXlsx(){
+ const ym=D.ym,n=new Date(+ym.slice(0,4),+ym.slice(5),0).getDate(),pd=x=>String(x).padStart(2,'0'),
+ a1=ym+'-01',b1=ym+'-15',a2=ym+'-16',b2=ym+'-'+pd(n),B=a=>a.map(v=>({v,b:1}));
+ const R=S.emp.map(e=>({e,m:calc(e,a1,b2,2),p1:calc(e,a1,b1),p2:calc(e,a2,b2)}));
+ const sum=k=>R.reduce((s,r)=>s+r.m[k],0);
+ const s1=[[{v:ym+' 月薪結算',b:1}],[],B(['員工','計薪方式','日薪／月薪金額','出勤天數','半天','薪資','加給','借支','實領','1–15日實領','16日–月底實領'])];
+ R.forEach(r=>s1.push([r.e.n,r.e.t=='m'?'月薪':'日薪',r.e.w,r.m.f,r.m.h,r.m.base,r.m.bn,r.m.adv,r.m.net,r.p1.net,r.p2.net]));
+ s1.push(B(['合計','','','','',sum('base'),sum('bn'),sum('adv'),sum('net'),R.reduce((s,r)=>s+r.p1.net,0),R.reduce((s,r)=>s+r.p2.net,0)]));
+ const s2=[B(['員工',...Array.from({length:n},(_,i)=>i+1),'合計'])];
+ S.emp.forEach(e=>{let t=0;const c=Array.from({length:n},(_,i)=>{const s=g(ym+'-'+pd(i+1),e.id).s,v=s=='f'?1:s=='h'?.5:0;t+=v;return v});s2.push([e.n,...c,t])});
+ const s3=[B(['日期','天氣','施工項目','施工人員','花費項目','金額'])];let ex=0;
+ Object.keys(S.work).filter(d=>d>=a1&&d<=b2).sort().forEach(d=>{const r=S.work[d],it=r.items.filter(Boolean).join('、'),wr=r.workers.map(id=>S.emp.find(e=>e.id==id)?.n).filter(Boolean).join('、');
+  if(!r.exp.length&&!it&&!wr&&!r.weather)return;
+  if(!r.exp.length)s3.push([d,r.weather||'',it,wr]);else r.exp.forEach((x,i)=>{ex+=+x.a||0;s3.push([d,i?'':(r.weather||''),i?'':it,i?'':wr,x.n,+x.a||0])})});
+ s3.push(B(['施工花費合計','','','','',ex]));
+ s1.push([],B(['當月總支出']),['薪資合計',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]));
+ const s4=[[{v:ym+' 當月總支出',b:1}],[],['薪資合計（日薪＋月薪）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
+ const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['施工花費',s3],['當月總支出',s4]])),a=document.createElement('a');
+ a.href=u;a.download='工班記事_'+ym+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+/* 計算機 */
+const C={i:-1,e:''};
+function calcEval(src){
+ let s=src.replace(/[^\d.+\-*\/()]/g,''),open=(s.match(/\(/g)||[]).length-(s.match(/\)/g)||[]).length;
+ while(open-- >0)s+=')';
+ let p=0;
+ const expr=()=>{let v=term();while(s[p]=='+'||s[p]=='-'){const o=s[p++],r=term();v=o=='+'?v+r:v-r}return v};
+ const term=()=>{let v=fac();while(s[p]=='*'||s[p]=='/'){const o=s[p++],r=fac();v=o=='*'?v*r:v/r}return v};
+ const fac=()=>{if(s[p]=='-'){p++;return -fac()}
+  if(s[p]=='('){p++;const v=expr();if(s[p]!=')')throw 0;p++;return v}
+  const m=/^(\d+\.?\d*|\.\d+)/.exec(s.slice(p));if(!m)throw 0;p+=m[0].length;return parseFloat(m[0])};
+ const v=expr();if(p!=s.length||!isFinite(v))throw 0;return v}
+function calcTry(){try{return calcEval(C.e)}catch(e){return null}}
+const calcShow=e=>e.replace(/\*/g,'×').replace(/\//g,'÷').replace(/-/g,'−');
+function drawCalc(){
+ const el=$('#calc');
+ if(C.i<0){el.classList.remove('on');el.innerHTML='';return}
+ const x=wk(D.work).exp[C.i]||{n:''},v=calcTry(),
+ K=[['C','c','C'],['⌫','','B'],['(','o','('],[')','o',')'],['7','','7'],['8','','8'],['9','','9'],['÷','o','/'],['4','','4'],['5','','5'],['6','','6'],['×','o','*'],['1','','1'],['2','','2'],['3','','3'],['−','o','-'],['0','','0'],['00','','00'],['.','','.'],['+','o','+']];
+ el.innerHTML=`<div class="cs"><div class="row"><b>計算機${x.n?'：'+esc(x.n):''}</b><button class="x" data-calc="close" aria-label="關閉">×</button></div>
+ <div class="cd"><div class="e">${calcShow(esc(C.e))||'0'}</div><div class="r">${v==null?'':'= '+(Math.round(v*100)/100).toLocaleString()}</div></div>
+ <div class="ck">${K.map(([t,c,k])=>`<button class="${c}" data-calc="k" data-k="${k}">${t}</button>`).join('')}<button class="o" data-calc="eq">=</button><button class="ok" data-calc="ok">帶入金額</button></div></div>`;
+ el.classList.add('on')}
+function calcKey(k){
+ if(k=='C')C.e='';
+ else if(k=='B')C.e=C.e.slice(0,-1);
+ else{
+  const last=C.e.slice(-1),isOp=c=>'+-*/'.includes(c);
+  if(isOp(k)&&isOp(last))C.e=C.e.slice(0,-1)+k;
+  else if(isOp(k)&&(C.e===''||last=='(')&&k!='-')return;
+  else C.e+=k}
+ drawCalc()}
+document.addEventListener('click',ev=>{
+ const t=ev.target.closest('[data-calc]');
+ if(!t){if(ev.target.id=='calc'){C.i=-1;drawCalc()}return}
+ const a=t.dataset.calc;
+ if(a=='open'){const i=+t.dataset.i,x=wk(D.work).exp[i];C.i=i;C.e=x&&x.a?String(x.a):'';drawCalc()}
+ else if(a=='new'){C.i=wk(D.work).exp.length;C.e='';drawCalc()}
+ else if(a=='close'){C.i=-1;drawCalc()}
+ else if(a=='k')calcKey(t.dataset.k);
+ else if(a=='eq'){const v=calcTry();if(v!=null){C.e=String(Math.round(v*100)/100);drawCalc()}}
+ else if(a=='ok'){const v=calcTry();if(v==null){alert('算式不完整，請檢查後再試');return}
+  const ex=wk(D.work).exp;if(!ex[C.i])ex.push({n:'',a:0});ex[C.i].a=Math.round(v);C.i=-1;drawCalc();save();render()}
+});
+addEventListener('keydown',e=>{if(e.key=='Escape'&&C.i>=0){C.i=-1;drawCalc()}});
+
+render();
+if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+if(navigator.storage&&navigator.storage.persist){navigator.storage.persist().catch(()=>{})}
+</script>
+</body>
+</html>
