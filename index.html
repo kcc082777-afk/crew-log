@@ -205,7 +205,7 @@ function vSet(){
  <h2>加給項目</h2>
  ${S.presets.map((p,i)=>`<div class="card row" style="flex-wrap:nowrap"><input style="flex:1" value="${esc(p.n)}" data-c="pn" data-i="${i}"><input type="number" inputmode="numeric" value="${p.a}" data-c="pa" data-i="${i}"><button class="x" data-a="dp" data-i="${i}" aria-label="刪除項目">×</button></div>`).join('')}
  <button class="btn ghost" data-a="ap">＋ 新增加給項目</button>
- <p class="lbl" style="margin-top:18px">資料儲存在這部裝置的瀏覽器中。</p>`;
+ <p class="lbl" style="margin-top:18px">資料儲存在這部裝置的瀏覽器中。</p><p class="lbl">版本：2026-11-25 機械設備耗材金額版</p>`;
 }
 
 const V={att:vAtt,work:vWork,pay:vPay,his:vHis,set:vSet},TT={att:'出勤紀錄',work:'施工紀錄',pay:'結算',his:'歷史紀錄',set:'設置'};
