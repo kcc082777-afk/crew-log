@@ -109,9 +109,10 @@ const w=(d,id)=>((S.att[d]??={})[id]??={s:'n',b:[],a:0});
 const wk=d=>S.work[d]??={items:[],workers:[],exp:[],note:'',photos:[]};
 const RES=['機械設備','耗材'];
 const rl=(r,k)=>(r.res&&r.res[k])||[];
+const resTot=(k,a,b)=>{let t=0;for(const d in S.work)if(d>=a&&d<=b)t+=rl(S.work[d],k).reduce((s,x)=>s+(+x.a||0),0);return t};
 const rr=(d,k)=>{const r=wk(d);r.res??={};return r.res[k]??=[]};
 const resCard=(r,k)=>{const names=[...new Set(Object.values(S.work).flatMap(x=>rl(x,k).map(y=>y.n).filter(Boolean)))];
- return `<div class="card"><b>${k}</b><datalist id="dl-${k}">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>${rl(r,k).map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" list="dl-${k}" value="${esc(x.n)}" placeholder="${k}名稱" data-c="rn" data-g="${k}" data-i="${i}"><input style="width:84px;flex:none" value="${esc(x.q||'')}" placeholder="數量" data-c="rq" data-g="${k}" data-i="${i}"><button class="x" data-a="rr" data-g="${k}" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ar" data-g="${k}">＋ 新增${k}</button></div></div>`};
+ return `<div class="card"><b>${k}</b><datalist id="dl-${k}">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>${rl(r,k).map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" list="dl-${k}" value="${esc(x.n)}" placeholder="${k}名稱" data-c="rn" data-g="${k}" data-i="${i}"><input style="width:60px;flex:none" value="${esc(x.q||'')}" placeholder="數量" data-c="rq" data-g="${k}" data-i="${i}"><input type="number" inputmode="numeric" style="width:84px;flex:none" value="${x.a||''}" placeholder="金額" data-c="ra" data-g="${k}" data-i="${i}"><button class="x" data-a="rr" data-g="${k}" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ar" data-g="${k}">＋ 新增${k}</button></div><div class="total"><span>${k}合計</span><span>${money(rl(r,k).reduce((s,x)=>s+(+x.a||0),0))}</span></div></div>`};
 const TABS=[['att','出勤'],['work','施工'],['pay','結算'],['his','歷史'],['set','設置']];
 
 /* 台灣假日（行政院人事行政總處辦公日曆表，2026–2027；皆只補假不補班） */
@@ -171,7 +172,8 @@ function vPay(){
 
 function vSum(){const a=D.ym+'-01',b=D.ym+'-31';let base=0,bn=0,adv=0,ex=0;S.emp.forEach(e=>{const c=calc(e,a,b,2);base+=c.base;bn+=c.bn;adv+=c.adv});for(const d in S.work)if(d>=a&&d<=b)ex+=S.work[d].exp.reduce((s,x)=>s+(+x.a||0),0);
  const L=(t,v,c)=>`<div class="row" style="margin-top:6px"><span>${t}</span><span${c||''}>${money(v)}</span></div>`;
- return `<h2>${D.ym} 整月</h2><div class="card">${L('薪資合計（日薪＋月薪）',base)}${L('加給合計',bn)}${L('施工花費合計',ex)}<div class="total"><span>當月總支出</span><span>${money(base+bn+ex)}</span></div><p class="lbl" style="margin:8px 0 0">借支 ${money(adv)} 已從實領扣除，不重複計入總支出。</p></div>`}
+ const m1=resTot('機械設備',a,b),m2=resTot('耗材',a,b);
+ return `<h2>${D.ym} 整月</h2><div class="card">${L('薪資合計（日薪＋月薪）',base)}${L('加給合計',bn)}${L('施工花費合計',ex)}${L('機械設備合計',m1)}${L('耗材合計',m2)}<div class="total"><span>當月總支出</span><span>${money(base+bn+ex+m1+m2)}</span></div><p class="lbl" style="margin:8px 0 0">借支 ${money(adv)} 已從實領扣除，不重複計入總支出。</p></div>`}
 function vHis(){
  const [y,m]=D.hm.split('-'),n=new Date(+y,+m,0).getDate(),days=Array.from({length:n},(_,i)=>i+1);
  const key=i=>D.hm+'-'+String(i).padStart(2,'0');
@@ -223,7 +225,7 @@ document.addEventListener('click',ev=>{
  else if(a=='ab'){const bf=t.closest('.bf'),n=bf.querySelector('[name=n]').value.trim(),am=+bf.querySelector('[name=a]').value;if(!n&&!am)return;w(D.att,bf.dataset.id).b.push({n:n||'加給',a:am});D.open=bf.dataset.id}
  else if(a=='jump'){D.work=v}
  else if(a=='ai'){wk(D.work).items.push('')}
- else if(a=='ar'){rr(D.work,t.dataset.g).push({n:'',q:''})}
+ else if(a=='ar'){rr(D.work,t.dataset.g).push({n:'',q:'',a:0})}
  else if(a=='rr'){rr(D.work,t.dataset.g).splice(i,1)}
  else if(a=='ri'){wk(D.work).items.splice(i,1)}
  else if(a=='wx'){const r=wk(D.work);r.weather=r.weather==v?'':v}
@@ -242,10 +244,10 @@ document.addEventListener('click',ev=>{
  save();render();
 });
 
-document.addEventListener('input',ev=>{const t=ev.target,c=t.dataset.c;if(c=='rn'||c=='rq'){rr(D.work,t.dataset.g)[+t.dataset.i][c=='rn'?'n':'q']=t.value;save()}});
+document.addEventListener('input',ev=>{const t=ev.target,c=t.dataset.c;if(c=='rn'||c=='rq'||c=='ra'){rr(D.work,t.dataset.g)[+t.dataset.i][c=='rn'?'n':c=='rq'?'q':'a']=c=='ra'?(+t.value||0):t.value;save()}});
 document.addEventListener('change',ev=>{
  const t=ev.target,c=t.dataset.c;if(!c)return;const id=t.dataset.id,i=+t.dataset.i;
- if(c=='rn'||c=='rq'){rr(D.work,t.dataset.g)[i][c=='rn'?'n':'q']=t.value;save();return}
+ if(c=='rn'||c=='rq'||c=='ra'){rr(D.work,t.dataset.g)[i][c=='rn'?'n':c=='rq'?'q':'a']=c=='ra'?(+t.value||0):t.value;save();if(c=='ra')render();return}
  if(c=='fill'){const p=S.presets[+t.value],bf=t.closest('.bf');if(p){bf.querySelector('[name=n]').value=p.n;bf.querySelector('[name=a]').value=p.a}return}
  if(c=='photo'){addPhotos([...t.files]);return}
  if(c=='date'){if(t.value)D[t.dataset.k]=t.value}
@@ -299,15 +301,16 @@ function exportXlsx(){
  s1.push(B(['合計','','','','',sum('base'),sum('bn'),sum('adv'),sum('net'),R.reduce((s,r)=>s+r.p1.net,0),R.reduce((s,r)=>s+r.p2.net,0)]));
  const s2=[B(['員工',...Array.from({length:n},(_,i)=>i+1),'合計'])];
  S.emp.forEach(e=>{let t=0;const c=Array.from({length:n},(_,i)=>{const s=g(ym+'-'+pd(i+1),e.id).s,v=s=='f'?1:s=='h'?.5:0;t+=v;return v});s2.push([e.n,...c,t])});
- const s3=[B(['日期','上午天氣','下午天氣','施工項目','施工人員','花費項目','金額'])];let ex=0;
+ const s3=[B(['日期','上午天氣','下午天氣','施工項目','施工人員','花費項目','金額'])];let ex=0;const m1=resTot('機械設備',a1,b2),m2=resTot('耗材',a1,b2);
  Object.keys(S.work).filter(d=>d>=a1&&d<=b2).sort().forEach(d=>{const r=S.work[d],it=r.items.filter(Boolean).join('、'),wr=r.workers.map(id=>S.emp.find(e=>e.id==id)?.n).filter(Boolean).join('、');
   if(!r.exp.length&&!it&&!wr&&!r.weather&&!r.weatherPm)return;
   if(!r.exp.length)s3.push([d,r.weather||'',r.weatherPm||'',it,wr]);else r.exp.forEach((x,i)=>{ex+=+x.a||0;s3.push([d,i?'':(r.weather||''),i?'':(r.weatherPm||''),i?'':it,i?'':wr,x.n,+x.a||0])})});
  s3.push(B(['施工花費合計','','','','','',ex]));
- s1.push([],B(['當月總支出']),['薪資合計',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]));
- const s4=[[{v:ym+' 當月總支出',b:1}],[],['薪資合計（日薪＋月薪）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
- const s5=[B(['日期','類別','項目','數量'])];
- Object.keys(S.work).filter(d=>d>=a1&&d<=b2).sort().forEach(d=>RES.forEach(k=>rl(S.work[d],k).forEach(x=>{if(x.n||x.q)s5.push([d,k,x.n||'',x.q||''])})));
+ s1.push([],B(['當月總支出']),['薪資合計',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],['機械設備合計',m1],['耗材合計',m2],B(['當月總支出',sum('base')+sum('bn')+ex+m1+m2]));
+ const s4=[[{v:ym+' 當月總支出',b:1}],[],['薪資合計（日薪＋月薪）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],['機械設備合計',m1],['耗材合計',m2],B(['當月總支出',sum('base')+sum('bn')+ex+m1+m2]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
+ const s5=[B(['日期','類別','項目','數量','金額'])];
+ Object.keys(S.work).filter(d=>d>=a1&&d<=b2).sort().forEach(d=>RES.forEach(k=>rl(S.work[d],k).forEach(x=>{if(x.n||x.q)s5.push([d,k,x.n||'',x.q||'',+x.a||0])})));
+ s5.push(B(['機械設備合計','','','',m1]),B(['耗材合計','','','',m2]));
  const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['施工花費',s3],['機械設備耗材',s5],['當月總支出',s4]])),a=document.createElement('a');
  a.href=u;a.download='工班記事_'+ym+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 
