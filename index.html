@@ -208,7 +208,7 @@ function vSet(){
  ${S.presets.map((p,i)=>`<div class="card row" style="flex-wrap:nowrap"><input style="flex:1" value="${esc(p.n)}" data-c="pn" data-i="${i}"><input type="number" inputmode="numeric" value="${p.a}" data-c="pa" data-i="${i}"><button class="x" data-a="dp" data-i="${i}" aria-label="刪除項目">×</button></div>`).join('')}
  <button class="btn ghost" data-a="ap">＋ 新增加給項目</button>
  ${RES.map(k=>`<h2>${k}項目</h2><p class="lbl">施工頁的下拉選單會用這份清單；金額可設預設值（沒有就留 0）。</p>${S.rp[k].map((p,i)=>`<div class="card row" style="flex-wrap:nowrap"><input style="flex:1" value="${esc(p.n)}" data-c="rpn" data-g="${k}" data-i="${i}"><input type="number" inputmode="numeric" value="${p.a||''}" placeholder="預設金額" data-c="rpa" data-g="${k}" data-i="${i}"><button class="x" data-a="drp" data-g="${k}" data-i="${i}" aria-label="刪除項目">×</button></div>`).join('')}<button class="btn ghost" data-a="arp" data-g="${k}">＋ 新增${k}項目</button>`).join('')}
- <p class="lbl" style="margin-top:18px">資料儲存在這部裝置的瀏覽器中。</p><p class="lbl">版本：2026-11-25 結算匯出只列實際使用項目版</p>`;
+ <p class="lbl" style="margin-top:18px">資料儲存在這部裝置的瀏覽器中。</p><p class="lbl">版本：2026-11-25 機械耗材、出勤分15天一段版</p>`;
 }
 
 const V={att:vAtt,work:vWork,pay:vPay,his:vHis,set:vSet},TT={att:'出勤紀錄',work:'施工紀錄',pay:'結算',his:'歷史紀錄',set:'設置'};
@@ -306,8 +306,7 @@ function exportXlsx(){
  const s1=[[{v:ym+' 月薪結算',b:1}],[],B(['員工','計薪方式','日薪／月薪金額','出勤天數','半天','薪資','加給','借支','實領','1–15日實領','16日–月底實領'])];
  R.forEach(r=>s1.push([r.e.n,r.e.t=='m'?'月薪':'日薪',r.e.w,r.m.f,r.m.h,r.m.base,r.m.bn,r.m.adv,r.m.net,r.p1.net,r.p2.net]));
  s1.push(B(['合計','','','','',sum('base'),sum('bn'),sum('adv'),sum('net'),R.reduce((s,r)=>s+r.p1.net,0),R.reduce((s,r)=>s+r.p2.net,0)]));
- const s2=[B(['員工',...Array.from({length:n},(_,i)=>i+1),'合計'])];
- S.emp.forEach(e=>{let t=0;const c=Array.from({length:n},(_,i)=>{const s=g(ym+'-'+pd(i+1),e.id).s,v=s=='f'?1:s=='h'?.5:0;t+=v;return v});s2.push([e.n,...c,t])});
+ const [s2,cw2]=attSheet(ym);
  const s3=[B(['日期','上午天氣','下午天氣','花費項目','金額'])];let ex=0;const m1=resTot('機械設備',a1,b2),m2=resTot('耗材',a1,b2);
  Object.keys(S.work).filter(d=>d>=a1&&d<=b2).sort().forEach(d=>{const r=S.work[d];
   if(!r.exp.length&&!r.weather&&!r.weatherPm)return;
@@ -316,29 +315,38 @@ function exportXlsx(){
  s1.push([],B(['當月總支出']),['薪資合計',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],['機械設備合計',m1],['耗材合計',m2],B(['當月總支出',sum('base')+sum('bn')+ex+m1+m2]));
 const s4=[[{v:ym+' 當月總支出',b:1}],[],['薪資合計（日薪＋月薪）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],['機械設備合計',m1],['耗材合計',m2],B(['當月總支出',sum('base')+sum('bn')+ex+m1+m2]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
  const rowsRU=[],mg=[],qn=x=>{const v=parseFloat(x.q);return isFinite(v)?v:1};
- [['機械設備','機械設備日期'],['耗材','耗材/日期']].forEach(([k,title],bi)=>{
-  if(bi)rowsRU.push([]);
+ const segs=[[1,15,'1–15日'],[16,n,'16日–月底']];
+ [['機械設備','機械設備'],['耗材','耗材']].forEach(([k,title])=>{
   const used=new Set();for(let d=1;d<=n;d++)rl(S.work[ym+'-'+pd(d)]||{},k).forEach(x=>{if(x.n)used.add(x.n)});const names=S.rp[k].map(p=>p.n).filter(x=>used.has(x));used.forEach(x=>{if(!names.includes(x))names.push(x)});
-  const r0=rowsRU.length+1,h1=[{v:title,s:9}],h2=[{v:'數量/金額',s:9}];
-  for(let i=0;i<=n;i++){h1.push({v:i<n?i+1:'合計',s:9},{v:'',s:9});h2.push({v:'數量',s:9},{v:'金額',s:9});mg.push(`${col(1+2*i)}${r0}:${col(2+2*i)}${r0}`)}
-  rowsRU.push(h1,h2);const dayAm=Array(n).fill(0);
-  names.forEach(nm=>{let tq=0,ta=0,hit=false;const row=[{v:nm,s:11}];
-   for(let i=0;i<n;i++){const L=rl(S.work[ym+'-'+pd(i+1)]||{},k).filter(x=>x.n==nm);
-    if(L.length){const q=L.reduce((s,x)=>s+qn(x),0),a=L.reduce((s,x)=>s+(+x.a||0),0);tq+=q;ta+=a;dayAm[i]+=a;hit=true;row.push({v:q,s:11},{v:a,s:11})}else row.push({v:'',s:11},{v:'',s:11})}
-   row.push({v:hit?tq:'',s:11},{v:hit?ta:'',s:11});rowsRU.push(row)});
+  segs.forEach(([d1,d2,lb])=>{
+   if(rowsRU.length)rowsRU.push([]);
+   const len=d2-d1+1,r0=rowsRU.length+1,h1=[{v:title+'　'+lb,s:9}],h2=[{v:'數量/金額',s:9}];
+   for(let i=0;i<=len;i++){h1.push({v:i<len?d1+i:'合計',s:9},{v:'',s:9});h2.push({v:'數量',s:9},{v:'金額',s:9});mg.push(`${col(1+2*i)}${r0}:${col(2+2*i)}${r0}`)}
+   rowsRU.push(h1,h2);
+   names.forEach(nm=>{let tq=0,ta=0,hit=false;const row=[{v:nm,s:11}];
+    for(let i=0;i<len;i++){const L=rl(S.work[ym+'-'+pd(d1+i)]||{},k).filter(x=>x.n==nm);
+     if(L.length){const q=L.reduce((s,x)=>s+qn(x),0),a=L.reduce((s,x)=>s+(+x.a||0),0);tq+=q;ta+=a;hit=true;row.push({v:q,s:11},{v:a,s:11})}else row.push({v:'',s:11},{v:'',s:11})}
+    row.push({v:hit?tq:'',s:11},{v:hit?ta:'',s:11});if(hit)rowsRU.push(row)});
   });
- const cwx=`<col min="1" max="1" width="16" customWidth="1"/><col min="2" max="${2*n+3}" width="7" customWidth="1"/>`;
- const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['機械設備耗材',rowsRU,cwx,mg],['施工花費',s3],['當月總支出',s4]])),a=document.createElement('a');
+ });
+ const cwx=`<col min="1" max="1" width="20" customWidth="1"/><col min="2" max="35" width="7" customWidth="1"/>`;
+ const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2,cw2],['機械設備耗材',rowsRU,cwx,mg],['施工花費',s3],['當月總支出',s4]])),a=document.createElement('a');
  a.href=u;a.download='工班記事_'+ym+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 
 function dlx(sheets,name){const u=URL.createObjectURL(xlsx(sheets)),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
-function exportAtt(){
- const hm=D.hm,Y=+hm.slice(0,4),M=+hm.slice(5),n=new Date(Y,M,0).getDate(),days=Array.from({length:n},(_,i)=>i+1),P=x=>String(x).padStart(2,'0'),k=i=>hm+'-'+P(i),
- hd=days.map(i=>({v:i,s:isHol(k(i))?10:9})),wd=days.map(i=>({v:'日一二三四五六'[new Date(Y,M-1,i).getDay()],s:isHol(k(i))?10:9}));
- const rows=[[{v:hm+' 員工出勤紀錄',b:1}],['1＝出勤　0.5＝半天　空白＝未出勤　紅字＝假日（週末與台灣國定假日）'],[],[{v:'員工',s:9},...hd,{v:'出勤天數',s:9}],[{v:'星期',s:9},...wd,{v:'',s:9}]],cnt=days.map(()=>0);
- S.emp.forEach(e=>{let t=0;const c=days.map((i,di)=>{const q=g(k(i),e.id).s,v=q=='f'?1:q=='h'?.5:0;t+=v;cnt[di]+=v;return {v:v||'',s:11}});rows.push([{v:e.n,s:11},...c,{v:t,s:11}])});
- rows.push([{v:'每日出勤合計',s:9},...cnt.map(v=>({v:v||'',s:9})),{v:cnt.reduce((a,b)=>a+b,0),s:9}]);
- dlx([['出勤紀錄 '+hm,rows,`<col min="1" max="1" width="14" customWidth="1"/><col min="2" max="${n+1}" width="5" customWidth="1"/><col min="${n+2}" max="${n+2}" width="10" customWidth="1"/>`]],'出勤紀錄_'+hm+'.xlsx')}
+function attSheet(hm){
+ const Y=+hm.slice(0,4),M=+hm.slice(5),n=new Date(Y,M,0).getDate(),P=x=>String(x).padStart(2,'0'),k=i=>hm+'-'+P(i);
+ const rows=[[{v:hm+' 員工出勤紀錄',b:1}],['1＝出勤　0.5＝半天　空白＝未出勤　紅字＝假日（週末與台灣國定假日）']],tot={};S.emp.forEach(e=>tot[e.id]=0);
+ [[1,15,'1–15日'],[16,n,'16日–月底']].forEach(([d1,d2,lb],si)=>{
+  const days=Array.from({length:d2-d1+1},(_,i)=>d1+i),cnt=days.map(()=>0);
+  rows.push([],[{v:lb,b:1}]);
+  rows.push([{v:'員工',s:9},...days.map(i=>({v:i,s:isHol(k(i))?10:9})),{v:'出勤天數',s:9},...(si?[{v:'整月合計',s:9}]:[])]);
+  rows.push([{v:'星期',s:9},...days.map(i=>({v:'日一二三四五六'[new Date(Y,M-1,i).getDay()],s:isHol(k(i))?10:9})),{v:'',s:9},...(si?[{v:'',s:9}]:[])]);
+  S.emp.forEach(e=>{let t=0;const c=days.map((i,di)=>{const q=g(k(i),e.id).s,v=q=='f'?1:q=='h'?.5:0;t+=v;cnt[di]+=v;return {v:v||'',s:11}});tot[e.id]+=t;rows.push([{v:e.n,s:11},...c,{v:t,s:11},...(si?[{v:tot[e.id],s:11}]:[])])});
+  rows.push([{v:'每日出勤合計',s:9},...cnt.map(v=>({v:v||'',s:9})),{v:cnt.reduce((x,y)=>x+y,0),s:9},...(si?[{v:S.emp.reduce((x,e)=>x+tot[e.id],0),s:9}]:[])]);
+ });
+ return [rows,'<col min="1" max="1" width="14" customWidth="1"/><col min="2" max="17" width="6" customWidth="1"/><col min="18" max="19" width="11" customWidth="1"/>']}
+function exportAtt(){const hm=D.hm,[rows,cw]=attSheet(hm);dlx([['出勤紀錄 '+hm,rows,cw]],'出勤紀錄_'+hm+'.xlsx')}
 function wxCanvas(y){
  const W=2800,LC=100,DC=(W-LC)/31,HH=80,RH=84,H=HH+12*RH+100,F="'Times New Roman','Times','DFKai-SB','標楷體','BiauKai','Kaiti TC','KaiTi',serif",
  C={'晴天':'#d6453a','雨天':'#2f9461','颱風':'#3f6fb8'},MN=['一','二','三','四','五','六','七','八','九','十','十一','十二'],P=n=>String(n).padStart(2,'0'),
