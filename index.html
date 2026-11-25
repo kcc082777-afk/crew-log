@@ -100,12 +100,18 @@ const shift=(d,n)=>{const x=new Date(d+'T00:00:00');x.setDate(x.getDate()+n);ret
 function load(){try{const s=JSON.parse(localStorage.getItem('crewlog')||'null');if(s)return s}catch(e){}
  return{emp:Array.from({length:10},(_,i)=>({id:uid(),n:'員工'+(i+1),w:0})),presets:[{n:'噴砂',a:300},{n:'噴漆',a:300}],att:{},work:{}}}
 let S=load();
+for(const d in S.work){const r=S.work[d].res;if(r&&(r['機械']||r['設備'])){r['機械設備']=[...(r['機械設備']||[]),...(r['機械']||[]),...(r['設備']||[])];delete r['機械'];delete r['設備']}}
 function save(){try{localStorage.setItem('crewlog',JSON.stringify(S))}catch(e){alert('儲存空間已滿，請刪除部分相片')}}
 const t0=today();
 const D={tab:'att',att:t0,work:t0,ym:t0.slice(0,7),half:+t0.slice(8)>15?2:1,hm:t0.slice(0,7),open:''};
 const g=(d,id)=>S.att[d]?.[id]||{s:'n',b:[],a:0};
 const w=(d,id)=>((S.att[d]??={})[id]??={s:'n',b:[],a:0});
 const wk=d=>S.work[d]??={items:[],workers:[],exp:[],note:'',photos:[]};
+const RES=['機械設備','耗材'];
+const rl=(r,k)=>(r.res&&r.res[k])||[];
+const rr=(d,k)=>{const r=wk(d);r.res??={};return r.res[k]??=[]};
+const resCard=(r,k)=>{const names=[...new Set(Object.values(S.work).flatMap(x=>rl(x,k).map(y=>y.n).filter(Boolean)))];
+ return `<div class="card"><b>${k}</b><datalist id="dl-${k}">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>${rl(r,k).map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" list="dl-${k}" value="${esc(x.n)}" placeholder="${k}名稱" data-c="rn" data-g="${k}" data-i="${i}"><input style="width:84px;flex:none" value="${esc(x.q||'')}" placeholder="數量" data-c="rq" data-g="${k}" data-i="${i}"><button class="x" data-a="rr" data-g="${k}" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ar" data-g="${k}">＋ 新增${k}</button></div></div>`};
 const TABS=[['att','出勤'],['work','施工'],['pay','結算'],['his','歷史'],['set','設置']];
 
 /* 台灣假日（行政院人事行政總處辦公日曆表，2026–2027；皆只補假不補班） */
@@ -140,11 +146,12 @@ function vAtt(){
 function vWork(){
  const d=D.work,r=S.work[d]||{items:[],workers:[],exp:[],note:'',photos:[],weather:'',weatherPm:''};
  const tot=r.exp.reduce((s,x)=>s+(+x.a||0),0);
- const dates=Object.keys(S.work).filter(k=>{const x=S.work[k];return x.items.length||x.photos.length||x.exp.length||x.note||x.weather||x.weatherPm}).sort().reverse();
+ const dates=Object.keys(S.work).filter(k=>{const x=S.work[k];return x.items.length||x.photos.length||x.exp.length||RES.some(k=>rl(x,k).length)||x.note||x.weather||x.weatherPm}).sort().reverse();
  return dateBar('work')+
  (dates.length?`<div class="lbl">有紀錄的日期</div><div style="margin-bottom:10px">${dates.slice(0,12).map(k=>`<button class="chip" data-a="jump" data-v="${k}">${k.slice(5)}</button>`).join('')}</div>`:'')+
  `<div class="card"><b>當日天氣</b><p class="lbl" style="margin:10px 0 0">上午</p><div class="wx">${wxRow(r.weather,'wx')}</div><p class="lbl" style="margin:12px 0 0">下午</p><div class="wx">${wxRow(r.weatherPm,'wx2')}</div></div>
  `+`<div class="card"><b>施工項目</b>${r.items.map((x,i)=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap"><input style="flex:1" value="${esc(x)}" data-c="item" data-i="${i}"><button class="x" data-a="ri" data-i="${i}" aria-label="刪除">×</button></div>`).join('')}<div style="margin-top:8px"><button class="btn ghost" data-a="ai">＋ 新增項目</button></div></div>
+ ${RES.map(k=>resCard(r,k)).join('')}
  <div class="card"><b>施工人員</b><div style="margin-top:6px">${S.emp.map(e=>`<label class="chip" style="padding:6px 12px"><input type="checkbox" style="margin-right:6px" ${r.workers.includes(e.id)?'checked':''} data-c="wkr" data-id="${e.id}">${esc(e.n)}</label>`).join('')||'<span class="empty">尚無員工</span>'}</div></div>
  <div class="card"><b>相片</b><div class="ph">${r.photos.map((p,i)=>`<div><img src="${p}" alt="施工相片"><button class="x" data-a="rp" data-i="${i}" aria-label="刪除相片">×</button></div>`).join('')}</div><div style="margin-top:8px"><input type="file" accept="image/*" multiple data-c="photo"></div></div>
  <div class="card"><b>施工記事</b><textarea data-c="note" placeholder="備註">${esc(r.note)}</textarea></div>
@@ -216,6 +223,8 @@ document.addEventListener('click',ev=>{
  else if(a=='ab'){const bf=t.closest('.bf'),n=bf.querySelector('[name=n]').value.trim(),am=+bf.querySelector('[name=a]').value;if(!n&&!am)return;w(D.att,bf.dataset.id).b.push({n:n||'加給',a:am});D.open=bf.dataset.id}
  else if(a=='jump'){D.work=v}
  else if(a=='ai'){wk(D.work).items.push('')}
+ else if(a=='ar'){rr(D.work,t.dataset.g).push({n:'',q:''})}
+ else if(a=='rr'){rr(D.work,t.dataset.g).splice(i,1)}
  else if(a=='ri'){wk(D.work).items.splice(i,1)}
  else if(a=='wx'){const r=wk(D.work);r.weather=r.weather==v?'':v}
  else if(a=='wx2'){const r=wk(D.work);r.weatherPm=r.weatherPm==v?'':v}
@@ -233,8 +242,10 @@ document.addEventListener('click',ev=>{
  save();render();
 });
 
+document.addEventListener('input',ev=>{const t=ev.target,c=t.dataset.c;if(c=='rn'||c=='rq'){rr(D.work,t.dataset.g)[+t.dataset.i][c=='rn'?'n':'q']=t.value;save()}});
 document.addEventListener('change',ev=>{
  const t=ev.target,c=t.dataset.c;if(!c)return;const id=t.dataset.id,i=+t.dataset.i;
+ if(c=='rn'||c=='rq'){rr(D.work,t.dataset.g)[i][c=='rn'?'n':'q']=t.value;save();return}
  if(c=='fill'){const p=S.presets[+t.value],bf=t.closest('.bf');if(p){bf.querySelector('[name=n]').value=p.n;bf.querySelector('[name=a]').value=p.a}return}
  if(c=='photo'){addPhotos([...t.files]);return}
  if(c=='date'){if(t.value)D[t.dataset.k]=t.value}
@@ -295,7 +306,9 @@ function exportXlsx(){
  s3.push(B(['施工花費合計','','','','','',ex]));
  s1.push([],B(['當月總支出']),['薪資合計',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]));
  const s4=[[{v:ym+' 當月總支出',b:1}],[],['薪資合計（日薪＋月薪）',sum('base')],['加給合計',sum('bn')],['施工花費合計',ex],B(['當月總支出',sum('base')+sum('bn')+ex]),[],['備註：借支已從實領扣除，不重複計入總支出'],['借支合計（參考）',sum('adv')],['員工實領合計（參考）',sum('net')]];
- const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['施工花費',s3],['當月總支出',s4]])),a=document.createElement('a');
+ const s5=[B(['日期','類別','項目','數量'])];
+ Object.keys(S.work).filter(d=>d>=a1&&d<=b2).sort().forEach(d=>RES.forEach(k=>rl(S.work[d],k).forEach(x=>{if(x.n||x.q)s5.push([d,k,x.n||'',x.q||''])})));
+ const u=URL.createObjectURL(xlsx([['月薪結算',s1],['出勤明細',s2],['施工花費',s3],['機械設備耗材',s5],['當月總支出',s4]])),a=document.createElement('a');
  a.href=u;a.download='工班記事_'+ym+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 
 function dlx(sheets,name){const u=URL.createObjectURL(xlsx(sheets)),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
